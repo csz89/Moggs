@@ -1,0 +1,979 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<title>PSL Rater</title>
+<style>
+  :root{
+    color-scheme:dark;
+    --bg:#07070b; --surface:rgba(255,255,255,.045); --surface2:rgba(255,255,255,.075); --line:rgba(255,255,255,.09);
+    --txt:#eceef5; --soft:#c7c9d9; --dim:#8e90a6; --accent:#8b5cf6; --accent2:#22d3ee;
+    --grad:linear-gradient(135deg,#8b5cf6,#22d3ee);
+    --r:20px;
+  }
+  *{box-sizing:border-box}
+  html{scrollbar-color:#2a2c3a transparent}
+  body{
+    margin:0;min-height:100vh;color:var(--txt);
+    font:16px/1.45 "Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-feature-settings:"tnum","cv11";
+    background:
+      radial-gradient(900px 520px at 12% -8%,rgba(139,92,246,.30),transparent 70%),
+      radial-gradient(800px 520px at 100% 4%,rgba(34,211,238,.17),transparent 70%),
+      radial-gradient(700px 500px at 50% 115%,rgba(139,92,246,.12),transparent 70%),
+      var(--bg);
+    background-attachment:fixed;
+  }
+  body::before{ /* faint grid, fades out downwards */
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+    background-image:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);
+    background-size:56px 56px;-webkit-mask-image:linear-gradient(#000,transparent 65%);mask-image:linear-gradient(#000,transparent 65%);
+  }
+  main{position:relative;z-index:1;width:100%;max-width:560px;margin:0 auto;padding:22px 16px 56px}
+  [hidden]{display:none!important}
+  a,button,label,summary{-webkit-tap-highlight-color:transparent}
+
+  /* ---------- header ---------- */
+  .top{display:grid;gap:14px;margin-bottom:18px}
+  .brand{display:flex;align-items:center;gap:12px}
+  .logo{flex:none;width:42px;height:42px;border-radius:13px;background:var(--grad);display:grid;place-items:center;box-shadow:0 10px 30px -10px rgba(139,92,246,.8)}
+  h1{margin:0;font-size:26px;line-height:1.1;letter-spacing:-.025em;font-weight:800}
+  .brand p{margin:2px 0 0;color:var(--dim);font-size:13px}
+  .privacy{margin:0;color:var(--dim);font-size:13px}
+  .hint{margin:0 0 14px;color:var(--dim);font-size:13px;line-height:1.5}
+  kbd{font:inherit;font-size:12px;padding:1px 6px;border-radius:6px;border:1px solid var(--line);background:var(--surface2);color:var(--soft)}
+
+  .tabs{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;border-radius:14px;background:var(--surface);border:1px solid var(--line)}
+  .tabs button{font:inherit;font-weight:700;font-size:14px;padding:10px 22px;border:0;border-radius:10px;background:transparent;color:var(--dim);cursor:pointer;transition:color .15s,background .15s}
+  .tabs button:hover{color:var(--txt)}
+  .tabs button[aria-selected=true]{background:var(--grad);color:#fff;box-shadow:0 6px 20px -8px rgba(139,92,246,.9)}
+  .tabs button:focus-visible,.seg input:focus-visible+span{outline:2px solid #fff;outline-offset:2px}
+
+  /* ---------- cards ---------- */
+  .card{position:relative;background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.025));border:1px solid var(--line);
+    border-radius:var(--r);backdrop-filter:blur(14px);padding:18px;box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 20px 50px -30px rgba(0,0,0,.8)}
+  h2{margin:0 0 12px;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);font-weight:700}
+  .why{margin:6px 0 0;color:#b9bbd0;font-size:13px;line-height:1.5}
+  .tip{color:#a5b4fc;border-left:2px solid rgba(165,180,252,.35);padding-left:10px}
+  .sum p{margin:0 0 11px;font-size:14px;line-height:1.55;color:#d6d8e6}
+  .sum p:last-child{margin:0}
+  .sum b{color:#fff}
+  .sum ul{margin:0 0 4px;padding-left:18px}
+  .sum li{margin:6px 0;font-size:14px;line-height:1.5;color:#d6d8e6}
+  details{margin-top:4px}
+  summary{cursor:pointer;color:var(--dim);font-size:12px}
+  summary:hover{color:var(--soft)}
+  .traits{margin:0;display:grid;grid-template-columns:1fr;gap:14px 28px;font-size:14px}
+  .traits div{display:grid;gap:3px;align-content:start}
+  .traits dt{color:var(--dim);font-size:12px;letter-spacing:.06em;text-transform:uppercase}
+  .traits dd{margin:0;color:#e6e8f2;font-size:15px}
+
+  /* ---------- upload panel ---------- */
+  .seg{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:12px;padding:4px;border-radius:14px;background:var(--surface);border:1px solid var(--line)}
+  .seg input{position:absolute;opacity:0;width:1px;height:1px}
+  .seg span{display:block;text-align:center;padding:10px;border-radius:10px;cursor:pointer;color:var(--dim);font-weight:600;font-size:14px;transition:background .15s,color .15s}
+  .seg span:hover{color:var(--txt)}
+  .seg input:checked+span{background:rgba(139,92,246,.28);color:#fff}
+  input[type=file]{position:absolute;opacity:0;width:1px;height:1px}
+  .drop{display:grid;justify-items:center;gap:6px;position:relative;text-align:center;padding:26px 16px;border-radius:18px;border:2px dashed rgba(255,255,255,.18);
+    background:var(--surface);cursor:pointer;transition:border-color .2s,background .2s,box-shadow .2s,transform .2s}
+  .drop svg{width:38px;height:38px;color:#a78bfa;margin-bottom:2px}
+  .drop strong{font-size:17px}
+  .drop span{color:var(--dim);font-size:13px}
+  .drop .chips{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin-top:6px}
+  .drop .chips i{font-style:normal;font-size:11px;padding:3px 8px;border-radius:999px;background:var(--surface2);color:var(--soft)}
+  .drop:hover,.drop.over,.drop:focus-within{border-color:#8b5cf6;background:rgba(139,92,246,.12)}
+  .drop.over{box-shadow:0 0 0 6px rgba(139,92,246,.18),0 0 60px -10px rgba(139,92,246,.7);transform:scale(1.01)}
+  .msg{margin-top:10px;color:#fbbf24;text-align:center;font-size:14px}
+  .msg:empty{display:none}
+  .photo{position:relative;margin-top:14px;display:none;border-radius:20px;overflow:hidden;border:1px solid var(--line);background:#000;box-shadow:0 24px 60px -30px #000}
+  canvas{display:block;width:100%;max-height:68vh;object-fit:contain}
+  .photo.scan::after{content:"";position:absolute;left:0;right:0;height:3px;background:#67e8f9;box-shadow:0 0 28px 8px rgba(103,232,249,.9);animation:scan 1.2s ease-in-out infinite alternate}
+  @keyframes scan{from{top:0}to{top:100%}}
+  .slot{min-width:0}
+  .slot-title{display:inline-block;margin:0 0 10px;font-size:13px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;padding:5px 12px;border-radius:999px;background:var(--surface2);color:var(--soft)}
+  .result{margin-top:16px;display:grid;gap:14px}
+  .result:empty{display:none}
+  /* the score lands first; the other cards stay hidden (.pending) until the count-up is done, then rise one by one (.in) */
+  .card.pending{opacity:0;transform:translateY(28px) scale(.985);filter:blur(8px)}
+  .card.in{transition:opacity .7s cubic-bezier(.16,1,.3,1) var(--d,0s),transform .85s cubic-bezier(.16,1,.3,1) var(--d,0s),filter .7s ease var(--d,0s)}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+  @keyframes heroIn{from{opacity:0;transform:translateY(28px) scale(.95);filter:blur(12px)}to{opacity:1;transform:none;filter:blur(0)}}
+  @keyframes popIn{from{opacity:0;transform:translateY(12px) scale(.92)}to{opacity:1;transform:none}}
+  @keyframes seg{from{opacity:0;transform:scaleY(.1)}}
+  @keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.08)}100%{transform:scale(1)}}
+  #mode-rate,#mode-battle{animation:fadeUp .4s ease backwards}
+  .photo{animation:fade .5s ease backwards}
+  .hero{animation:heroIn .9s cubic-bezier(.16,1,.3,1) backwards}
+  .hero:not(.spinning) .hero-score small{animation:fade .6s .2s backwards}
+  .hero:not(.spinning) .hero-score em,.hero:not(.spinning) .subtier{animation:fadeUp .6s 1.2s backwards}
+  .hero:not(.spinning) .hero-verdict{animation:fadeUp .6s 1.3s backwards}
+  .hero:not(.spinning) .hero-pct{animation:fadeUp .6s 1.4s backwards}
+  .hero:not(.spinning) .ladder span{transform-origin:bottom;animation:seg .45s cubic-bezier(.2,.9,.3,1.4) calc(1.4s + var(--i,0) * 70ms) backwards}
+  .ladder-names span{opacity:0;transform:translateY(8px);transition:opacity .5s calc(1.9s + var(--i,0) * 70ms),transform .5s calc(1.9s + var(--i,0) * 70ms)}
+  .hero:not(.spinning) .ladder-names span{opacity:1;transform:none}
+  .mini{animation:popIn .7s cubic-bezier(.16,1,.3,1) backwards}
+  .mini:not(.spinning) em,.mini:not(.spinning) p{animation:fadeUp .5s .9s backwards}
+  .done b{animation:pop .5s cubic-bezier(.2,1.6,.4,1)}
+  .placeholder{display:none}
+
+  /* ---------- roulette ---------- */
+  .collapse{display:grid;grid-template-rows:1fr;transition:grid-template-rows .8s cubic-bezier(.16,1,.3,1),opacity .6s ease}
+  .clip{min-height:0;overflow:hidden}
+  .has-reel.spinning>.body-box{grid-template-rows:0fr;opacity:0}
+  .has-reel:not(.spinning)>.reel-box{grid-template-rows:0fr;opacity:0}
+  .reel{--tw:112px;padding:20px 16px 12px}
+  .reel-title{margin:0 0 12px;text-align:center;color:var(--dim);letter-spacing:.3em;font-size:12px;font-weight:700;text-transform:uppercase;animation:fade .6s backwards}
+  .reel-win{position:relative;overflow:hidden;border-radius:16px;background:rgba(0,0,0,.32);border:1px solid var(--line)}
+  .reel-win::before,.reel-win::after{content:"";position:absolute;top:0;bottom:0;width:24%;z-index:2;pointer-events:none}
+  .reel-win::before{left:0;background:linear-gradient(90deg,#0a0a10,transparent)}
+  .reel-win::after{right:0;background:linear-gradient(270deg,#0a0a10,transparent)}
+  .reel-strip{display:flex;padding:14px 0;will-change:transform}
+  .tile{flex:none;width:var(--tw);height:80px;display:grid;align-content:center;gap:3px;text-align:center;border-radius:14px;border:1px solid transparent;
+    background:linear-gradient(180deg,color-mix(in srgb,var(--c) 20%,transparent),transparent);opacity:.5;transition:opacity .2s,transform .25s,box-shadow .3s,border-color .3s}
+  .tile b{font-size:18px;font-weight:800;color:var(--c);letter-spacing:.02em}
+  .tile span{font-size:11px;color:var(--dim)}
+  .tile.hot{opacity:1;transform:scale(1.07)}
+  .tile.win{opacity:1;transform:scale(1.16);border-color:var(--c);box-shadow:0 0 44px -4px var(--c),inset 0 0 24px -8px var(--c)}
+  .reel-ptr{position:absolute;left:50%;top:0;bottom:0;width:2px;margin-left:-1px;z-index:3;background:linear-gradient(transparent,#fff 20%,#fff 80%,transparent);box-shadow:0 0 14px rgba(255,255,255,.8)}
+  .reel-win.landed .reel-ptr{animation:ptr .7s ease-out}
+  @keyframes ptr{0%{box-shadow:0 0 14px rgba(255,255,255,.8)}35%{box-shadow:0 0 50px 8px rgba(255,255,255,.9)}100%{box-shadow:0 0 14px rgba(255,255,255,.8)}}
+  .reel-skip{display:block;margin:10px auto 0;font:inherit;font-size:12px;color:var(--dim);background:none;border:0;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+  .reel-skip:hover{color:var(--txt)}
+  .reel-skip:focus-visible{outline:2px solid #fff;outline-offset:3px;border-radius:4px}
+
+  /* ---------- score ---------- */
+  .hero{overflow:hidden;padding:0}
+  .hero-grid{display:grid;gap:18px;padding:26px 20px}
+  .hero::before{content:"";position:absolute;inset:-30% -10% auto;height:260px;background:var(--c,#8b5cf6);transition:background .6s;opacity:.22;filter:blur(90px);pointer-events:none}
+  .hero>*{position:relative}
+  .hero-score{text-align:center}
+  .hero-score small{color:var(--dim);letter-spacing:.3em;font-size:12px;font-weight:700}
+  .hero-score b{display:block;font-size:92px;line-height:1;font-weight:800;color:var(--c);margin:6px 0;letter-spacing:-.03em;text-shadow:0 0 60px color-mix(in srgb,var(--c) 45%,transparent)}
+  .hero-score em{display:block;font-style:normal;font-size:26px;font-weight:800;color:var(--c);letter-spacing:.04em}
+  .subtier{display:block;margin-top:6px;font-size:14px;font-weight:700;color:var(--c);opacity:.85}
+  .hero-verdict{margin:0;font-size:17px;font-weight:600;color:#fff;line-height:1.4}
+  .hero-pct{margin:8px 0 0;font-size:14px;color:var(--soft)}
+  .hero-ladder{grid-column:1/-1}
+  .hero-pct span{color:var(--dim)}
+  .ladder,.ladder-names{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:4px}   /* equal columns: a long label can never push its neighbours */
+  .ladder span{height:10px;border-radius:5px;background:var(--c);opacity:.22;transition:opacity .3s}
+  .ladder span.on{opacity:1}
+  .ladder span.me{opacity:1;box-shadow:0 0 0 2px var(--bg),0 0 0 4px #fff}
+  .ladder-names{display:none}
+  .mini{text-align:center;border-radius:18px;background:var(--surface);border:1px solid var(--line);overflow:hidden}
+  .mini-body{padding:16px}
+  .mini-body b{display:block;font-size:58px;line-height:1;color:var(--c);font-weight:800;letter-spacing:-.02em}
+  .mini-body em{display:block;font-style:normal;font-weight:800;color:var(--c);margin-top:4px}
+  .mini-body p{margin:6px 0 0;color:var(--dim);font-size:13px}
+  .mini-body .warn{color:#fbbf24}
+
+  /* ---------- measurements ---------- */
+  .measures{display:grid;gap:18px}
+  .row{font-size:14px}
+  .row div{display:flex;justify-content:space-between;gap:10px}
+  .row span{font-weight:600}
+  .row i{font-style:normal;color:var(--dim);text-align:right}
+  .bar{height:7px;border-radius:4px;background:rgba(255,255,255,.08);margin-top:6px;overflow:hidden}
+  .bar u{display:block;height:100%;border-radius:4px;width:0;transition:width .9s cubic-bezier(.2,.8,.2,1)}
+  .imp{display:grid;gap:4px 36px}
+
+  /* ---------- battle ---------- */
+  .duel{display:grid;gap:18px}
+  #verdict{display:grid;gap:14px;margin-top:18px}
+  .vs{text-align:center;padding:24px 16px;overflow:hidden}
+  .vs small{color:var(--dim);letter-spacing:.3em;font-size:12px;font-weight:700}
+  .vs-title{margin:8px 0 14px;font-size:30px;letter-spacing:-.02em;text-transform:none;color:var(--txt);font-weight:800}
+  .vs-score{display:flex;justify-content:center;align-items:center;gap:22px}
+  .vs-score div{display:grid}
+  .vs-score b{font-size:56px;line-height:1;color:var(--c);font-weight:800;letter-spacing:-.02em}
+  .vs-score span{font-size:13px;color:var(--c);font-weight:700}
+  .vs-score i{color:var(--dim);font-style:normal}
+  .split{height:12px;border-radius:6px;background:#f472b6;margin:16px auto 0;overflow:hidden;max-width:640px}
+  .split u{display:block;height:100%;width:0;background:#8b5cf6;transition:width .9s cubic-bezier(.2,.8,.2,1)}
+  .split-l{display:flex;justify-content:space-between;font-size:12px;color:var(--dim);margin:6px auto 0;max-width:640px}
+
+  .note{margin:28px auto 0;max-width:900px;padding-top:18px;border-top:1px solid var(--line);color:#6f7188;font-size:12px;line-height:1.6}
+  #veil{position:fixed;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;background:rgba(7,7,11,.84);backdrop-filter:blur(8px);pointer-events:none}
+  #veil div{padding:48px 72px;border:3px dashed #8b5cf6;border-radius:28px;font-size:24px;font-weight:800;color:#fff;text-align:center;box-shadow:0 0 120px -20px rgba(139,92,246,.8)}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+  /* ================= desktop ================= */
+  @media (min-width:1024px){
+    main{max-width:1360px;padding:30px 48px 72px}
+    .top{grid-template-columns:1fr auto;align-items:center;gap:8px 24px;margin-bottom:22px}
+    .privacy{grid-column:1/-1;grid-row:2}
+    h1{font-size:30px}
+    .logo{width:48px;height:48px;border-radius:15px}
+    .hint{max-width:880px;margin-bottom:24px}
+    .card{padding:24px}
+
+    .slot--rate{display:grid;grid-template-columns:minmax(360px,430px) minmax(0,1fr);grid-template-areas:"panel main";gap:36px;align-items:start}
+    .slot--rate .panel{grid-area:panel;position:sticky;top:24px}
+    .slot--rate .result,.slot--rate .placeholder{grid-area:main;margin-top:0}
+    .slot--rate .drop{padding:40px 20px}
+    .slot--rate .drop svg{width:48px;height:48px}
+    .result{grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;align-items:start}
+    .result>.span2{grid-column:1/-1}
+    .slot--duel .result{grid-template-columns:1fr}
+    .slot--duel canvas{max-height:52vh}
+
+    .placeholder{display:grid;gap:22px;align-content:center;min-height:520px;padding:44px;border-radius:var(--r);border:1px dashed var(--line);background:rgba(255,255,255,.02)}
+    .result:not(:empty)+.placeholder{display:none}
+    .placeholder h3{margin:0;font-size:28px;line-height:1.2;letter-spacing:-.02em;max-width:18ch}
+    .placeholder h3 em{font-style:normal;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+    .placeholder ol{margin:0;padding:0;list-style:none;display:grid;gap:14px;counter-reset:s}
+    .placeholder li{counter-increment:s;display:grid;grid-template-columns:34px 1fr;gap:14px;align-items:center;color:var(--soft);font-size:15px}
+    .placeholder li::before{content:counter(s);display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:var(--surface2);color:#fff;font-weight:800;font-size:14px}
+    .placeholder .feats{display:flex;flex-wrap:wrap;gap:8px}
+    .placeholder .feats i{font-style:normal;font-size:12px;padding:5px 11px;border-radius:999px;border:1px solid var(--line);color:var(--dim)}
+
+    .hero-grid{grid-template-columns:minmax(220px,300px) 1fr;gap:40px;align-items:center;padding:34px 36px}
+    .hero-score b{font-size:132px}
+    .hero .reel{--tw:150px;padding:30px 36px 16px}
+    .hero .tile{height:96px}
+    .hero .tile b{font-size:22px}
+    .mini .reel{--tw:128px}
+    .hero-score em{font-size:30px}
+    .ladder-names{display:grid;margin-top:10px}
+    .ladder-names span{text-align:center;font-size:11.5px;line-height:1.25;color:var(--dim);white-space:nowrap}
+    .measures{grid-template-columns:repeat(2,minmax(0,1fr));gap:24px 44px}
+    .traits{grid-template-columns:repeat(3,minmax(0,1fr))}
+    .cols{column-count:2;column-gap:48px}
+    .cols h2{column-span:all}
+    .cols p{break-inside:avoid}
+    .imp{grid-template-columns:1fr 1fr}
+
+    .duel{grid-template-columns:1fr 1fr;gap:28px}
+    #verdict{grid-template-columns:1fr 1fr;gap:20px}
+    #verdict>.vs{grid-column:1/-1;padding:32px}
+    .vs-title{font-size:40px}
+    .vs-score b{font-size:72px}
+    .vs-score{gap:36px}
+  }
+  @media (min-width:1400px){
+    .slot--rate{grid-template-columns:minmax(380px,460px) minmax(0,1fr);gap:44px}
+  }
+</style>
+</head>
+<body>
+<main>
+  <header class="top">
+    <div class="brand">
+      <span class="logo" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M8.5 10.5h.01M15.5 10.5h.01M9 15c1 .9 2 1.3 3 1.3s2-.4 3-1.3"/><path d="M3 7V4h3M21 7V4h-3M3 17v3h3M21 17v3h-3"/></svg></span>
+      <div><h1>PSL Rater</h1><p>Sub3 → True Adam · модель обучена на оценках людей</p></div>
+    </div>
+    <div class="tabs" role="tablist" aria-label="Режим">
+      <button role="tab" data-mode="rate" aria-selected="true">Оценка</button>
+      <button role="tab" data-mode="battle" aria-selected="false">Батл</button>
+    </div>
+    <p class="privacy">Фото обрабатывается в вашем браузере и никуда не отправляется.</p>
+  </header>
+  <p class="hint">Фото можно перетащить в любое место страницы или вставить через <kbd>Ctrl</kbd>+<kbd>V</kbd>. Выберите пол человека на фото: у моделей для мужчин и женщин разные эталоны.</p>
+  <section id="mode-rate"><div id="slot-rate"></div></section>
+  <section id="mode-battle" hidden>
+    <div class="duel"><div id="slot-a"></div><div id="slot-b"></div></div>
+    <div id="verdict"></div>
+  </section>
+  <p class="note">Оценку считает модель, обученная на открытом наборе SCUT-FBP5500 (5 500 лиц, 60 оценщиков; набор выпущен для научных целей, проверьте его условия перед публичным использованием). PSL здесь это 4 + отклонение предсказанного балла от среднего в стандартных отклонениях; шкала и проценты следуют из модели нормального распределения, а не из замеров. Это вкус группы оценщиков, а не объективная истина и не показатель вашей ценности. Результат по одному лицу колеблется примерно на ±0,5 PSL, а в батле разница меньше ±0,7 может быть случайной. Подуровни LLTN…HHTN делят LTN, MTN и HTN на трети по 0,17 PSL, это тоньше погрешности модели, поэтому соседние подуровни почти неразличимы.</p>
+</main>
+
+<div id="veil" hidden><div>Отпустите фото, чтобы загрузить</div></div>
+
+<script type="module">
+import {FaceLandmarker, FilesetResolver, ImageEmbedder} from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs";
+
+const $ = id => document.getElementById(id);
+
+// [upper bound, name, colour, verdict]
+const TIERS = [
+  [3,   "Sub3",      "#ef4444", "Ниже нормы. Многие пропорции заметно далеки от среднего."],
+  [4,   "Sub5",      "#f97316", "Ниже среднего. Есть сильные отклонения, их видно сразу."],
+  [4.5, "LTN",       "#f59e0b", "Low Tier Normie. Лицо проходит, но ничем не выделяется."],
+  [5,   "MTN",       "#eab308", "Mid Tier Normie. Середина толпы, ровно в среднем."],
+  [5.5, "HTN",       "#84cc16", "High Tier Normie. Заметно выше среднего, но до топа далеко."],
+  [6.5, "Chadlite",  "#22c55e", "Chadlite. Привлекательное лицо, мелкие недочёты ещё есть."],
+  [7.5, "Chad",      "#06b6d4", "Chad. Почти все пропорции в идеале. Такое встречается редко."],
+  [8,   "Adam",      "#8b5cf6", "Adam. Практически эталон. Единицы из тысяч."],
+  [Infinity, "True Adam", "#f0abfc", "True Adam. Математически безупречное лицо."],
+];
+const tier = psl => TIERS.find(t => psl < t[0]);
+
+// normal-CDF percentile; PSL 4 = 50%, sd 1 (forum model: 5 = 84%, 6 = 97%, 7 = 99.9%)
+const percentile = psl => {
+  const z = (psl - 4) / Math.SQRT2, t = 1 / (1 + 0.3275911 * Math.abs(z));
+  const erf = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-z * z);
+  return 50 * (1 + Math.sign(z) * erf);
+};
+const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
+// PSL = 4 + z, where z is the predicted rating in standard deviations of the rating distribution of the training set.
+// Ridge regression on landmark shape + face-crop embeddings, trained on SCUT-FBP5500 (5500 faces, 60 raters), one model per sex.
+// Held-out Pearson r with the raters' mean score (official 5-fold split) is stored in MODEL.*.r.
+// shortcut: trained on 15-60 y.o. neutral frontal faces (73% Asian, 27% Caucasian); other ages, ethnicities and smiles are out of distribution.
+const toPsl = z => clamp(4 + z, 0, 8.5);
+const MODEL = {"use":["geom","S","L"],"flip":true,"m":{"w":"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","b":2.796314790282305,"mean":2.904533337454546,"sd":0.6496372263763973,"r":0.872952392644025,"cg":0.1667921988279107,"ce":-0.05857365165566969},"f":{"w":"fq33PKTjILw3owk8IkyCO0Q4pDwLVki9uOmfPAVvzTysPE48ijGbO7W5/zxGH0G9PUs4O873nTxIxoS9TnWOOj8LsTzTQ5O9r/xjuwk10jwQZYG8+6PFvURegT0yRKs61pJyvLuYejyjwNu7Y0VYvOH63rtsJNy7OwH/OcXq1L1fxXC747X5PM31q7uZHcg7tqr7PISLJ7pNLrw7ImnLPDl0pjk45bA6i9AVPTOCJb1354G8XSvoPKStG71UPI28Lv7CPBbA/7xN+We8hJuYPPummLxbOiu8py+BPGnpADyfQjK7BmetO1o5sjzGK7+8yKb6PGfbkzzkf8y7FE5ovLuy1rzS1v86iodJOjhyAL3EOiy7CzIIvQSNqLxfbtu6/wobvS3OyjzADvm5FAikvdeVED6vLxQ7qeqLPXlYgLzDVXO7ljifvGV5RL3ROA27mksoPLFNur0h3He7BYLrvO9NqjqpIHC6fuQyvQNIOz2lg5i1a9MFvdYH5j2+8Iw7aIvEPNywCD5cq1M6DZLUvTGupD2RyQ477YKOuwzoDLv7t7s7KWyHvPlNmz054Y47gs4nPfj4NT2m+Pw5dqVePGRfL7zW3vk7BQhKO9gBo7vufok7q/c2u+f1/byNbqU7fgePvHVWHL252QM7TBmAvOSnfryBh0871KTLvJfA5LwQVvA6j+atOq/9Xb33fXm6oy0pPG4wnzwQUwy9wIoqPKJKmDxnfXC9st6CvRfplT0mLAg7mBm3Pdguwz0xGBK85WW6PRHpGjxsBf+7CvTmPaToFTyl0iu8gYYEveSPpz0Iv7Y7iy3pO731tTw+7ZS9tkeQvFyWCT0Gx4C6h2JPvchDPT0en8Y5kPeGvDRyQr1IoxY6Q0e3u3KeGT0MloW7KH6CPJRWBL53PYW7ivKbO27UVr0Zo5S6ZygSPT2lrbz5+m48uFKpPZmoDTxxYjo7GhqTPYIlgjxiu/g7T/LtvGnm/7w1DdG5jm0GvYxp67xeeji5UcozvT8rOT1DQ0A6UbcLPk0UKbwERbE6CcjxOyVdAT0OqS+78uQ5O43OBz1gHz67JL2ivBDMpL2zl/i6ie78vGlkDL2KCCM6SzSevMe7bL2kVi67001bvT5sRT3CUVk7yh3fvA5ihLwKff86HKnRO4AVIrwTxbw7QOo0vM8k0bwe4Wc7UHbAvOXxEb3Zhfk6kFi5PUkcwTtTEVI7DWn6vBf09rzJQDi5BXYPvc44Qb3BuiC7BCQPvZ7D5byk0NW5wM0tPTvyfTzUO6K8R2oDvW5Rv7yq18a40v+vvDqFR7wpo1A5h6MZuzEXH7u4zeg4h5JdPdD4qTvOqjG7osbRPGTFtbxEySG8wXDCPANaD711E1687qm8PDB9Jb0yHom8OS69PO8JJb1YI3m8OP0Cven6Ur1yUt27KdkCvZk3ab1DmQK8qFPmvGBFW73xPNC7007HvJ8bFb3cJ427rzs7PaxvcL2weNg792eTPLrvJ7xUgE48SQgfPBUhrjyuPAu8IrEYvYjhOr3PpwW7b0AWvfjjOb3KCEK7UiKKPVGDpDyLpHg83rwPPvAu0LyXg3s88WyMPWfhlDyiCCQ8btCIPASBmT16Lr+6ME3uvWBQ1z3ByfE6AHIiPr35E7wBWw+7Z2uNvBZkgr0jmw26UGXMvK6dK70PxWe6x0NCvDG8Ez3kGay6bgsAPBPboLzvAoq6iVh9vA7/yTwBq5S7UYJvvG4kyr3+yoi7hackvJ9jwb2qF0S7Pfx8vVnq7z2W+Jw6NikuvFn+0T250q47jYS7PSmyCr1bCXK7M1M5vesOrz0zc0M7OFF8PfPLsz0CM0C8cLs/PUGDkTxMB768zxJkuXJd2zpIf9Y77QHru9qyGT6VCK87nBHaPKutET7/gpY7R8GgPQ4zHT4sgwM7YCwHPp2B/T2VtG66L20ePozwrT162rq7swr0OqZhEj2CRoS8TeeUPNgkW7yb8fg7hRsfvf7MoT0HllM7X+RLPN2Prjy5dae84Y/oPaDHQj3Xcma8oEMPunNEkLtL9tM7/2fTPQrJCz3ZN++7n8BQPpY2qLzHyIQ7Qqh4vez35D3qI1U77wptPW34pDxrvum8FvTqPJtrg7ygKHY8FezcPey2ir1YWku7izWuPMsGuDwR60W9va9XPRL8A7yYjuA7pg4vPdb6K7y1ESA8vIjIPPCqhLwlsSI8TKRNPZVQx7zpBBw8wQCEvPpyobtd2mE7i/5DPQU1xj3hYdg6HlGOPAs4pzyECeU4nZULPqco9juRN5a7QdZDvCz/ZT0yips7iyGFvWfZN72bOBK6zB1MvWyvlr1DWd+6ypkEvfm8Nr00e926N/IdPc8UBr3DZQ48T8wPPaWvlj3Vi406eHM/PbsNDD26KJY7IAE7PQqhMzxknN07yha3uyBjA763V6a7/mjcvEMVmD3hK/k5SdKLvMIQkb2Vdhm7EaA0PWP8SL0GBiO7ruKtPfjXV70bkyC7opP4vFsHKD1ZqlI7c7uBPLUzi75x0V+7WjARvSYdkr4HhTG7IpfHvUnGhb4Iuxa7yvIQvjSuS76l8G266fIUvhqkzL0bP7I5PP8avMsXXbzoo3U7FnOpvaUh+zuIXiU6Yc3GPILlMTxGj5k8vLXVPXlaKL2D03Q8HyyBPUlCbzzMySu8/qhdPcPoOzt/Yoc8BBMnvPIWEb0a4RK8Wq9cPWtIrjxge5g7vclZPbP3bz384Uo7l669PEe74D2gmuk5NxEkPfzkp7zK4048qcWiPZC7Hb7XI2W7n6yEPH+kQj2cAeS8RL4JvYBM6D0QFR45KKdLPc31dz0rpCE70T0hPe2h1bwMQD485ym0u+1zL7260ja8Gfi6u2wzPL1MYlS8g3RLOrqKJL033x+8GkIHPI5GirxVl9m7njv/PNObmTwVL6K661brvE5iBL33pZY6jH3bvPz5Eb0g2006xTTDvBU+Gb17ASQ6/CALPGZNfr2hWqg5AJMHPW1rMbz9W7M7tR+rPHuAgD1+OG68PVEWPd1IVr008Lm7K1iGPauL+7346ZW7vQUAvebK6rz1Lhc6INI+PfgW/bwKldw7dJ41vHpaAb2myuS73f6wPGz98T30hwY64SwvOkuf6zzKeHW9js2EO+FSID0qM+G8h0uluXVyDT37wu+89XY5PfQJEz0MEBC9BBi6vEDmEj5OlxW6V8WdO9wmyT2B6aW6SQCePJXozj0tWIm6Y1shPQe8+rxS2rO3R9tMPsp7Dr3SWt87cwf0PJGegz2kuuc5wg+Uugcegj2EiAk7abdbPetVDL0RF647fq+/PJlRv7s/DLc6++6oO8NMDz6ca+m51xf4PcSY8DzuAI28XhVSPXEG9jwZnRQ7X6dPPfA1wz0fPOQ639YXPQVcTb0e8im6l7E7PTOLHb07ARY8qZdZPaDXk7xB8RI7LVc/Pai59bwpeDs8k6VEPFg9QL3qNg66y8ZZPSBjUj3XerO82kUmPVVzkDzlA8C8g12bPfwRUTw0Osq7ggWwPK5hmDze9h695rTlPPIN/Dv7QYu7oK/DO5IS3jv4gES7MTKZvEcKVzzw5626BmI4vVfFHT1WyrW4fE6TvdsBlj2NfJ06CwzPvCAptT0VL4c7Z5n1O25O7LvVOfg7YUInvbvFLz5Y4oE705Y+OY/GAz7eEzc7x/6SPIPhnz3L1BM6oPRwPXqSRj0c7Qa7cxTlPZxwAz0GM5y7RcLTPXGrtjsEl8q7ye4DPCCbsLvMdBY8+BTcPSgPwLmZpmw6W2ZaPAPeCj28Jii9U0OqPInwlzyi+ga9PlrMPGwanTy3pKm8BhrcPFRHiDz/rt28z5XqPV/SHbyNAAg8sYGXPKC3rzxJpaS87RfIPCURoDyJETu7hMjEPfcLRr1raou7qVaMPUiS+LzqPuW7ZLIWPUjyY7x4cxW85oUCvqgC5rugwLQ6SAJhvdiHrT3KYdI6CqvEunsF+DzOAVG9YvJWPZZAOT2J3ba6txMzvB6HiDwPIt27i+VJPOOF27ycdUE6XjHIvPuNzr339ri7p1aKPIbXtL18E6G7kjIfPW5dIr2rdW67mbyYPc78Jz7lji25EvLSvfT3kb24x827+x/FO7qSf70Jm6K7CLmjvM53wb2EJ827kM+gPDRZrLzmOnK7q3A4PWq6sjy/wi27WOZoPVQPBj6QdxU7vCgpvbd64D3X0ps5SAeRPTGupD1Ncca4HruXO5SDHLxO+m87QQwEPQEEnz3eNxA7cdvvud6Kkj3wgl269v4RPfs4h7yMIww8cpgWPWkHBLyD3dA7aqcoPPhnMb2G9c079WY3OxpnM72Sszs7IqNVPFaBqrxjga075eaYO+lN+Lx1u247AcMGvX9JGL1hiom63rnWuTTXoTzOhhC9C4lBu+h/ljzyTHK9D/SwPSt6Tj17m206SKOOvTSsxT3jtUi8sKiOvXpxEzz38iG89E3CvdilHDwHFVa846iTPW3tDz6tg5c7hHZnu5jftTwxcJK9B890PBkTILqLjJK6ODBiPcN6dTzlva+4KOGBPBUdOr1amDO6jRggvZsxbDylvX67O0pzvcSrEb5e1ty7OXsMvYnkDL2GOae6TRr+vNaoXbySOTA849tTvfpwUjxjz9q6IOwfvSIHiDwae8o7lEnWOtIYtLy0qxu6SIRpO1PvsLyXgdi42DJyPbESxTxQ4R65LdDXvXbY27vhF5S6X7OwvEtMkDreJFm7uCF8vG6DfzvEhHq7JnGyPOkLq72qYz+7qYoePYhKLb3wEC26LtRgPI2mpL1FdXq7vcKVPb2JJj1jVI8530jsPGOUsbxjcyQ6EM4jPeM2crzdnOk7zN5LPOM+Br3lrbA7WkytO+nGH73y9GA7WDVmvcZ3JjztCpc6wtEdOzxLtbwVkYi5QJAPPNPDG73fEAq7RGqiO2Pnq7ztnMK59onDvL75hDwLcaO8+YMCPKZG17wOfeo61LFOPPmac7xV2CU7VobOPJdeobupP/06Dnj/vPOjR7qL9BG75MMZujpszLzjSQy8rgiXPOqvGr232T68PZLWPJUdK71HMm68xor8PDL1Hr25yVK845+NPGVeH70/S6y7pEVwPOVqTL0kHdK75CQyPOEzWr1IZKO7Q3p9Oza5Hr0/dWq7vkV+vUt2VL22/r07KEWHvCKfGLzoixM8f8hXPH9QBL1xAdG6sppJPDXGBr3N1xy7vwzzvEdBjjyrbGo8C8XTvVVfnrzqG1Y8EB4MveHEjDyezRA8H/muPPipyT0EPFC7iMw/PipNFD6exrU6GzAKvuIN1LuaZ5O7pjSkPIj+gb1Jsuu6WIEDPWrsab05HBK7tPgdPM/YxzvnlwO71M4PvUbNWrxC3ZC6s3+jvPB0lDv9lpm7FWWrO/OM6r2yAJ67mjknPMXjyL3YoWu7PftdPQnYuj2GrtO6M4siPdt+9D2GuT07S2sQvv0Awb3nG9q7LbOIPSXEjT2WtJQ6WPRyvUqVqD2bTnK82g4BvWYqlTwYtcO81paqOwkm47vy+5o7SA5yPepyNz5vTC87CqSjPZWYJD6iriw7JLONPC56Fz6xtF86hHC0vdBB3j0ylgW7eZUjvg1Jhz1fpf+7da1avMZ7BD3sE428Vbs5vLivSzuaw6Q7nitoPedtjT3kTZ466rBdukOQqjxMEay8CEawvbrDUD3WmJ+8c1GbN4uXA7ylq6I7np0LvhXE2Tuucwa8rSIkvpF6Rrw70YI7xwxWPVfFBD7beKI67l83vTaJoTyGovW8fXrRvJbMOry9vi482TAtvi/wE74aB8+7trd7vPyDsDyjVU69Kl05vdZvMjxNG507RioUvYnduroMPPM745G3vNRxery8MuA74gkvvUDbx7veUNs793KGPOMYMLwpJfc6Yg99vXd8nz30j5g6mTf9OkSqnzxSWI65mPajvSpT2jwgMvO7X7+fPHVgVT2Ym087vroIPbB19L2U72O7p9O8PKSwIL4IQZ+7NK2sOwsrDr0chNW6wmQKvaKkgLt6oMQ7XZtSvZ1phj0cjH86mytDvXqW7jxe7nE7Z0sqvdVIZjyMYaw7j3aavF0hH77rDLK7HM62vQCW/71VUYy7Jz0Pvu2V+L3UNrK7NpksPaN1Gj1DjxM7KSa7vVdOh754zd+7dkpXu6NpjL4i1ri7Qlt0Pcs9h75be7G7NFrGPcinVL6xZnm7fdbYPT6M2r1z+A+7PCoFPJLdfbxi6SY7meYgPSJQMr1UAgq7zWW/vcY6IL0b9VQ8fgsZvRNRjzzcwja8ycM1vL6XGLusP4E8CQ9OvRkBAD2/Tlk7upxovd+8UT3oPhQ7NSNHvZ8Lyz1ArMU5vyQLvZ/XMLwF2Bo8ONccvpZRUb42md+7EqEvvFUoNj1HfQS9TWtovVvQST3FqwA7rpQQvaUBhrwF5wQ8ttqWPHMkJL1+Fw+8ydCCPLZfNL3tvy28aiwDPFwoMb2nEvy7PK0avPEHzrzZ+au7vq0tvU7Fijt2MY+6REMeOwa/9bzouOA6lfZSOpmcA71GpoI6M3IUuTLoCr2DeBY60EIOvQ9nQb2KhFu40bSrvEH5fD34oXE7qU/svCvmYz1uXIO822buvZtBuL38aAe8IRMKvvQEI751ju+716+LO6LW3LxJAcg6jsQovc+MMzzluow71DEjvSVlOb2sEAe8uYoKvZOgwT0L4n85n/CGu56tGT22IfC8/WoDvWYHCj2ldhy9UmrnuuKOsj0EOoG6eiV8vZT9WLtKm6a5WwwwvkLgjLxG+rM7plhSvV8ChT2s1Ok4BA3MPAy+Ej55G5E6FZ+HvaCY7LsP5F07Y/i1vJyrtj2RMx46v7M4vPmAAD6ydeC5PfO+vaHB6DyUB6m8JpVlvQB3Wz2qMbM6Dnx4vWK7sz1vSHE6GmZtvWA7m7yYalW6oaEmvW8NF7y3XMw7D+JQvUEN6DykqJA6bRInvc5vfrzYlgY8lPcYvbtunLx/gV+6TXUbvbFsRz3Veem82lG8vD/ZljzGoMK8/EVWvXMqaTztLgK819pXvKL4ljxF5Ca9PPuTvXuw5rzmQ9u7kwdyvHo0ybwA3Z27PfJBPK7RiLwcKyW7K+gjPZRssTueGNe6Zl6sPXARGz3y/wO62mMrPaeP2T0EHw87Tjnbu9i5ULwk1Kg7JPaQPUsrQj5f+u06gv04PT4C8z1llgc6lgrtO7QzCT364O+6C7t/vZWNcrr3T5G7LEwWvlfhPrtuOeO7BGsnvt3IsLys9Qa8pDH5u2nX/Lv1Eek7r02evYWIgjvL64S67gfNu3/2BD2J6D69//kivJHOlTyMiQe9jFZlvJNslDy5cKy8DYZrvGaihzzv1+C85NajvYwVmbs+Et074yXsu0puojwdpKe8pUmju19wkTzxXVO7Lvwlvk2L3L3nA/G7ws8cvlaZaL2b8wW8fJy7vWQg/Lxjpyi8oU64PRx6/7v1wXy6+YN2Pf1Fhz3RNV+63u0qvbZmyj0BvTQ8Bm0tvDrVlz0msUQ8hjpJvXSz/LutTEQ8vZOWvQDz8j2snEQ8prXfvCt4XD6kgEQ8EK4XPsSHbz0JFQG8XScuPuz3qz1R6/e78/EfPkELNr3izve7XJDkPbxqKT1ezfe7pZAIPjVyPj5gMvi7lvGwvDKWaj5ib9I9Ly+ZPoOcd7xr9KA9ESgcvkIgBz4Sew0+i8IxPr3zoTxgDQa+U/+HPSnFBb70bc29rUhGvshRDL7hAMO6XtSzvpYjID4UmgS9aSj5Poo2ezy+VB++p+qHPf+e6D1io6C8gX3kvUPw0r4+KlE9Fp9fPi4VRbw1kLy9LZ+SPp1YTr56aoA+n2kQPt1ovz6b9JM+BLH/PiQGgL63tHe9dTCePdoYuD1R+vC+1sJnPPeAML6kyG+8QOVoPjo/4T3m45S9g0cHviaD2b4A9Vc+Z8wDPu+SI75Lyy8+y2aLPY4EIT2QX6A9EjJfvpagKr552sm9JjiXvdDhNr7HiGe+CLK2PITJfz4yCNi+OGMDvT2Pk74ae4e+y7opPm4oDD4l7Fq+3P5vPyHNiL4gJJM9i1wQPlrJX76cTTg++juDPgQHQT2u8ym/egigvaUGrb4LH+I9sWAuPUFXNj5PJ+S9+AfUPlyK5L36VQs9beiDPeRePD6qaR89uXyaPq1GdryE/UK+BGxqvoXYP73CeN+6+aUPv/G2lr1NFzM+8K8UOyDJpb3bZ5i9jUotvqf2hD8uo1W9GrjVPSZ4oD300449vkIivsRM/b77tJ09tW4nvoNhM75YIaI+H0cAP0cCGr3woWa/Hw6xPkK3HD5BUL+9aPGOPgjdMT6alRS+B+CMvr/tLD7JcPY+eK/tvZYJqL1SBhG9ERjavL40jz1MgAw/0dQkv1r8MD5xUSm//LToPVw3er4M7NW895aVPJ2dWj3t/qk8ONW9PgzGgb34LvW9Xsw1vhoFeT2ew8y9weidPv7qmb5iHwU+A65RvvmXfz7+naG9b0HDPrNG1D1NuTI+DZIqPp1bW77gbf098tQ7PpL/Gz7oJgg+9d+7vr4LU75II72+ticUvpW+jD0wMrg94vncvWJzzr665v89DFEmvZPpC76d+e+9piZ/PhrTcr60rC282FAlPjsSWT6UFce9h4I+PhE+OL6kSGw9t58lPTLwy706YsC9IzZMvtuJzz7r5WC8N5TjPJGtdr/9Xaa9v24rvyKQgL2SzsC99kGUvlYDvD6BCpI9Q9opvkYlkz60k7I8utYdvcESC776mVW/sXSrvnHH2zwPYyg+5O0avmNEYz6IoxO/3odZvU9Rir56r6O+0aFTPctpIrvIjZM9Hb69PRV3ED4575Y9ztJAPV2reb59hpg9tJ2qPQiiij8ga/y68dUlv9WwBj1WFzY9hm4cvhr3HD5Pe4O+pulcvJQixD6+BIG9ek56PIUfgD9PpcW9d1FzPv3xkj0/uxU8PLd0P0Ao2jvIJTq/vwAWPlilZT42bTo9fUqsvUODpT2n1Fg8gu8GPepzwz1gW5G8WuuZvRHKML6MICg+d9wCP7jDfj0rHao9Qrq4vFLAwL7slua9khFuvm2+dr5EJEM9WCYUvrD4ob3NG1+9PgMqvo8npD0UpVE/xH2qPu8fNr8A/fA9vAs5vljWtD2C4N28JfcyPlkvF742LOS9z0BDPx2spLytycY9Z7jNPgHGlT7ErQk/3NCSvq3V/D5Z0EI+juh/Pg3PzD2tCBE+KRaOPhg3yz0lDfm9Hgq1Pd3adr0Kub29hemEPs0lm73k0ac+2kFePiWoAz59Mxm9hWkePebnSL87PUe93YLcPpViMT7D24i+Grq/Pc124byp1sm8jrzSvUBSbTmChVa9O68yPk4Elb5AhDu+jgyHvqlYpb1pPre9pnnMvlnIi70oA3++fzL4PNPOS75KkIq99pmEvrzlcL7iVQE9djO6vR3k8zwkW5K+ljcQuvGgiLxI5E2/L5x8Pi74UDyfTxs/Md0uvueAmD6zl6A+lCZbPUw3+j2KV/07oytZPpD6tD3FF2i77f9BPJ5Hib2uNWg+huYkPjc6F7/ij6493k4lvc/ArTyqj4S+e2tTPRtEmzwzKJc+RaXrPDoMqb3Hfq69klUMPvdZrTl4f3E9mdU3vAU0wD5vPqy8YbbhvRJk6b25GTw9GG5ZvubBsT65i7u+GL8ev/fAzbyCZrA9EzmCPX3Qvj61lSc+gx60PZT6ez7f4jO+zK/RPXNl0L4ZMJ6+1ZEDPrs+bj3R1wC9P7sfvnIXMT6ehAK+WqPMvTrW/Txuo1Y90pIEvUKdJL6l6ps+VakzPtjtZ73LLGS/KuUovmpUgr0xtAA/L2hJPvtQKj2e5vg+hLikPba4Gj9sR4G/LS4jvp5muL1Uumg9KzHuPjsX/71ek4m+VBPdPmoCR73GNy+/M7tPvbnlF7+qixm/SyQYu82avT6XnuO9BKWEPJSyoD7KoBi+yk3PPAQriD2+K1W+e850Pfz1QT1hyRu+r56tPmgngz4q/lQ+lKcevWw7zj5GUbo+/L0HPdg5Pr5s0QK+XhcdPRI4AT0Tvfa8OtdHPRcyD77PuFa9EoGIPlHuCL4O3KS9u86yPWPG7r0eDo09Ew8UPkpR+D1llAm9c7/QPRPuzz0CEeM9hE24PTS7UTyyDCW+6mefPO3RiD0BDpU8Rg2MPo96Lr7dElC9o9fvvXjrxD25gGA+L9ddPlcuiL5940g+W96YPsQf8L2OrSU+WGRHvvTGaT7lUgg+/OFyvbkzqj1CCGc9CwPzvelqijwwUaw8BlQAvsuQGr6AoSe+/1e3PR7FCD4R6Ug8EAJbPdel2T54UhM8AA6vPLS8l7um7iU8DbPoPWMoFr1iB7++es6LPQCPPzuU41A9C1GaPuNK8D4oG06+n82xvdzdPj6RgQE+ixNNvf0Dzb7A0a4+tTBcvf64zr2M+jg/ZnrlvRwi7D0HV0K9crAFPUbrczomRpK9xQPjvbeKvj1VJwG/LqxdvoW/pr7KLAQ+uz5tPc2uALw9pBE8sKmkPTB0571Phag9SeqPPvhaFz7+U8U9QvmJvehFb70GqnW+f1D4PjdLBr5LfF09X0hRPjG4Qj3lqTQ+PKajvdWx7z5pORm9cLfJPdPhCL5XF/w9q8hZvkq7rDu/hKa+q80KPoLMyL4k+VY9Ap8tvh4wtr6tLwk+xGTBvdIAJr6AbzI+gHLBvfaXar4cGaO7yzuyPcvxcz5qCVW8lCn0vkSwmb6DUIA/LWSPPTR/eT4XJra+UmCMPpEGezz6SkY+0XwfPzWlAr5aU9y9bJ2zPpHpZb7cy7m8ek5tv6Vb+LxlqCG+v6+PPWNxlTtpoeY+qa49PooVzr6+nZC+0xdBPkHcWL446+47BbPFPhnAzT0TVP69inhbv/EY1DwxtMw9SCKEPfh7ar77Zmk+t94kvhIqGj86fHE9ZyD5PikOLz2QKZM9igKzvEy77TxRrbG9SobvvvxstT3BPR68gwoSu1cEvTzYK0U+Uz12vi8Kbr8OVgw+3SGKvXmQHb6BaA69OwvNvsCuUr0waZQ9bEvbvv1SLb4RPBE/c+zbvT/oYD6zQc69N3tMPWv3vL7zXHo+Gkg3v9Gbtz6jplK+6xNhPO4L0T51QQ8+P+2KPRSsibsU72w+l51Fv0dbX733zAO/KRiJvhVFkz6vjym+KhlHP2YZ9r0Nj1G9wYFlvbe3Jr8s1L8+hD0NvcBMQz10wB8+45Yqvathb75yy8q7O8QTvzKsTr39QYs+ELftPWhuq770IgE+r+6iPUQ0Rj4HHJ48vbMgva4X+byrhgO/M2mSvFfGX77akLS+ouAuvrOwprqvjPo8qPyCwOTw6D7S6Qq+5q3aPpVJyr2HryE+UX2rva+Hbj2lxhe+VTfUPp7lgr3p9LU8lJzqPNQhbTxN1h2+LXIyvkQcOL7JLyq9BhuhPYWoTL4USe48IPVBPokEtb0o9lI+mIgDPw5yMT4NiqE9+JITvhtWWz88ci88tVqdPlXbRD4ejCY+sNgNvvFiv76/Xzc+HgfnvevOcD9F+To+BOdUPrDgVb3d/au99bcDvfcRjrzuH509qCRhvPjihL1ekZY+7+qavDGyFr7rs/87dHI5vvu+ez2npsi9Hak3Pvecqz5OZWA/F246vz+Wyr1Fyki/5RR7vs1YBT6q8ys+PEAXvuAFx7xw86S6yXKsPWONsrxHJCu9SkFlPr9k6Tys9aU+UfMUvtIpwbu0lKw9/+43Pr1/3T0LH5K6tPWnvjpair1WHz8+X8bWvO2SID6cFL09TyYnP/g5jTxNv/o+rbOxvnvfGL0wySA+a+cJvZUOgr/z64o+vpUXvvRWfL34Ad++K8K7PqPImz7MB1g/HAQ7uvcDi7zXxYg8y2i1PtbEhz7uco2+6AWdveuGqj3uo2A+pOoUvetYMD6uWQ2+kobZPW9LgD5AdCQ+QfJ6vm8E6L36sls9l0w3PkhFjT6tSyS+17lAvXkmW7675Cw+8YI2v6P2a76emA2+kffzPls/rTpySEg+Lqncvj1HUT6je4w9gicYvloiPz4Jc6Q9lf2Svrfzyj1vlby9sTWxPeGuCT1bg/c7hgWPPfx/hj/FglU+clwYP3Z0OL/AFGO9yOk1vtatAz6Y1F4+yTcmvrORJ77qwUI85vqBvhp/Oj71exI9gNsqPXkt6zxFzz6+4TQAPrj0Lj1bBe691X1iPlJB0D1RbK0+svbwPUmEzL5MmP+8EAUbPzSTo73f5gI+vbq2PYy6Kj6GKlY+7BGDvjEJ0T78oZ0+ynS0PaH1M77rIrW8H5+6vzt9sj5nqZq7UCvTPiMsmT6dTJ+83q1ku/uQc76ELfE5gBq4vdoX9j0bE5s+Q9dCPryUwr1RRg28hcPcPZyY7b1O9K4+s9ooPpzoaj7XZ4y9zdFyvnrUjbnbWBO+VDi1vemNQD4jCiE9J08uvjsktrymSRy/v1g/vgcY4D2Jy348gircPdVeab7euiM+gD6KPtUgiT4pzIu+ovsfPoShB77lZIQ9TfJFPoH3Gj0aq4E9MWOTPhf1Rb2f2hI9SdVlvJw/mz3N4Vg9En+sPqYHzT6Kigm/iqpqvjI/SbtLm669IXKEvr7w7jq5jj++Dhi6PBv7Rz07pDq77bVVPjlS6r7CAis+BUTpPWNFFT4orqA9N+IOvjZojr5zMN09UWH5vky4PL4b8Q6+45O1PuTMnz7cf4C+K5x9wFZkzrwxLjc+wpsPPHRtjr0TjCG+nbgZvouw7D14H5Q96GZuPtrSij6kMOC8Aj4zvgAimb4kjyw5gd3HPsHCqr5cqlU9SGLAvWFEyD2A9B0+FxzivRYflb09SDK+w7dZviUfC75Uq8C7gQ4tvrAn8z0bkSQ/cmLqvZwiu73DZSU9n1BJPqKL+L1LSO28P2EvvAQ5jLzt0hi+2wnJvvt+UL4xSdi8ydn1vaYHwL+KHci9wBqqvVqCFL7lLfG55M6CvqVD+T7X65c9D8ytPSTbwz39hsq9uB6+Pa5c/z2Gkcc92RwkPrDn+b3/gp8995fKPBkvojtmuSw/GjEpPSyxqT2Ddo8+L5Awvj8h8bxRHQc/cLapPZBFrzwd1Lu9OMOIvlM1sT3lze69VRCvPuI9ID03gb2+Tk5ZPvpkuz0ETwe+nR4+vspYB74pfPo+y0nNPCoLPz9n5NM+asv6Prg607zWGHk9UKQXP7PHtD1d3Qm/0CUKPjL8P79GX2Q9LMSxPSGnoT51Pxy++AXmPp9aJ71VrO89XoDCPkZVnz0g3Rq/Xk0wvfbUk75ta0q+HMG9PrjVGbyN56K9Ie2AvgkW+j1qP+O8YSK2v6njrb7/7QG++xkavbHzjj2cWnu8PRHKPRlBJL1asN++bksFPq21fr6vTag8WA9ovL9wpD1VQKa7ur1oPcfZb7+ZyYO9orKuPnxz1T3Zs8C9gs1xu1LDGz79CYs+4SVrPSxNML7mhC+986RRPiaN9jyAU4u+Kxo7vbBbo745Jhs+BT0CPnvxUz6IHuO85JylPh4vHb331hS+FNyhPYCnHr5575I+OmqHPfPdFb+nMzc8ZtqQvCbHUTw3UZI+t+DiPf7hczuDlwQ88BGZO6RgPDuAWyE+N+3ZvV350D0dazS8NqC9vvxX2bz+OA2+1RO0vuOfNr2Uk0o959rKvfsizjx7iIg+BLDOPbOtJr589q2+cIY1voj8Ibv1v5C+l3BzPhFheT4kIrE+DQ02vyPIKz7IbYi94xZ2vT10Kz3bw7c9qCCPvbFFvT4ewc0802TIveFtML3XvoE+MI3mvVNHyL3HmFa+l2ajPL+Aj75EXBa/R9h/vVPJ6r2V+qO9CRmlvI9pv71GleY9w8g9PjIdljxDdr++KQoYPmh7pj1wPKM+M0UXPmNMoL0SkzA94MRkPvvNx71iJpc+YjwvPmrLvT6EU6g9Pav5PXRTAL6DsL8905pvvg0ZOD5OtrQ9kGcSvinLIL5Watq9+zddPSMjkT39SGq+YVg5u/deLT5TCZu+rrOCvYmGQz4txRW+F/oQPo4MA74jtgE+qXtTvqXhW768XYQ7JpbFu9ETLz5KeAW+Xe9UPbSst74+oYU+/JOZPtuX5j3zx48+QAAPPnZDMT9eU12/0QltvYAcqD6a/xE+/TISPj6E0T2QQi+/HtYcPp68Sb6+dHy+7bhavk/xr73+d7q94ggwPt992D0x85o+cUFYPq33l7x5vxc/EFLgPPzdTz3NlMK+6RHSvXHdFT/9I4e9tVI/vW1JgL69/tq+yEjfPIw6cb6tN4i9JhBZP09Xg7yMMN0+sMROPqtiHz8Bsom+AlCivQXP0T0A9yc9pXfXO0oohz4YjeI+QnSHPqwnw76drqg+XzwAPUy4dj7IsvM+BUw+PCUm/74aRC4+prtKvoiPwj28+w2/yvClvrW2cb4Czro+JEYWP6kmMT5ffqM7R6GHvpOUzr0yil4+OP5OP0X8IT5C5LC+KXmBPpT8qj3BYMW9lEw3PdYtGr01il2+qvZvvh1yub3Ntb++M0XMu8DOBL1DTyE933kTPNDdAr/xDW+9EdQyPRXGkz1MS/E+c0Iivk8tHz4iBu09RSgaPhVB57z5fA6/3ebePplPEb5YY349Loz2vu936L5bBVs9q8UCvcB9hL7NVLY8tshXvbi3Vb3oSje8VH1xvdiDHj1gvz095MDAvQ1q7z6/zD++vo/kvayqaT4TBVq+wxKfPlglar6cuA08u5JMPtbZRr3Rj2e9fXlQvSckMb70SRG/GRbIPWlNGz+Fdju/eOeivhSQBT62vik/ta2NvnjHEj3lOT6+jq8NPgt9V77wiV69kPE4P43gZz0fmIc7x/B0vQhjJT4xnfw+faODvScFSz3MV8U9jl0iPgj3h77FhOm9zOwQvkkYKz6ZMmU9g0kYvjWKgj6UrZE+fUMnvkxPWj7AtAw+mw93vkNtSj4vmsA9O1pNPgtQJj6yaOU+oJPzvXKZfD3fypq+vdLOPUWPJL3bapO+zq0bvcyTkz7O9tu731XKPHikC7/Qt7m8JSpBvAmms77gBzK+bAlOPlTllj15Gb87DJSQPlBWmD1UEjs+Ex9fv5FSdD5ugUg/OkSEvQealL0udQE+yUsnPsLGGT5rwYA+8luGvjrBkz6DoAc+tA65viUxSz5gfOY9cVhDvMGdm734mFY9QbagvR+7IL4L4hm/XZb5PPV7mL4zQ9O92TJSPBiZCz6L0Is8Ffo9Pa6gsrz6BnS8tHU+vlHhwz22Ntq88jUtvmtLAz0EvJq+ULE/vkpDg73uLi+7W5KpvfoKTT4p9VC+apwTPljjgLwvFbo+fzmsvXR/7D6UY9K+V8iYPBMndb2XX2c+B4r2vuqwmr6qHTi+5jkqPjeWg73yh509O4/IPjAlZT3AQnM9t9+9vloEb74MpDy9xS7KPgk/Lj50KiS+QXaHPI3Wvr3sFs4+PmNUvjp0Dj03ioi+ik/pvkBOxb39JYQ+ubHvvbrtij499Yo+CR7bvrI3fj18hHu+1jeFOFMQmT4vBoA+bA1vvaTsML6MRpu+INXlvtz7Ij4hxYU9Hd83Pr4PGb7t6aM9M8ylPfgA4z7fKx49SynyPsZOUb7Rjge+Dzd8PS3GJb6nzSs+mSaUPuRoOb5IEXg+dZyPPJca0L6w9nU+zvMoPW+vdz7NQRO9Hf08PD+gIT27IoC8LyGsvvNTob4biQm+AFZGPY2M3Lwl8fY92tL+PutKpT0S6tK+dkbrvoTCKL+U/Yy+kjZivuuiJT/mU989QpYwPvfcL79voZA+bBGBvmOmj74d5ZS+cHeTvWA14D1ME+u9yxkFPT3KrT7Jd5m+xK7mvnWJv71S+DG8hY1FPsVnGb8UCtw+bk8bvo7QBzqa6Ag+3oFSP4Ma6D4+vQW9leN8vssuIr6cWJE9BH/JPf6cmr5fZvS96isTvuipkb6iuDw+4BlQvQK3D705C4M8rK7mucmakz54YlE+yX+bvf8mMTzENQO+DevlvR7jvb6MM3a+zLO+PdlqpD6SQ+s8li1DPDUzgr02Fba+hBkQPohWQL7jQi0+LhPtPgnIkz1Gsge+EPA2vjybfj6aFYu+ZnSQvdGDIL0Etim/siXEPowwUT2byw4+etugPuT6Fj5R0R2/l9ZMvk2xaT6HN+O9d+6uPrfdlb50NPc9/LKbOqKP1z4XDLk9zcoMPsBbWzspi6y82f+6vvTcG7/YlTO9wRmju4pocb2Rgva9nxkiP50ksb2Ijro+v5ABvpVWx72BC9A9InuIPIcSR77nfZm7ADCJPsp+CD/4Xzm9cheuPdlDcT4Tthy+J6JmvmdAhb7msLA8Ih8dPiXCWD6dZQA9pQ6LPGwX273YVdU7kOssvrjak7va0QC+7o0HvBfscD3VCyC/vtoGPVSClT7s/FS93gkzPf61I7+42N4+Fg31vMdcMz6sasw8nsuOvPzghL00JFW+SWHWO8t2JT5eace+tse/v/ek1j6taYG8KZYPvqTmBz5Nvyi+FASDPSufVb2UM94+ApLTvbCZmb6HhcI+ue+zvqrurr1w/aI95kHzvRXzPz5R20K+SKR4PXCYoL2OpSQ+OAv+vcuxZj2n/O2+kWWCvm4W4T2WV5w9glP7vbFsSj3Im+K9mxjOvMos8z2DSoO9VbCyvNDgL76IUqe9nlDXPagAYT6iUD++2b2CPZn3D76OmY494fsNPcGspb33+cy9xSEJPtM7bD7dskC+JHRQPbrVhD0c3gk/lCngPUXe0Dyw3YM/KogBvPNioj3TrYE8tMmcvUvYEb9pyxg+iu8OPrATSrttWgs+QWGRuS8OV77pjbS9vQOLPaDxZb2xurc9zn93vb65IT01stO99kcHvsn5bz7C75a+gdqnvc3Mh76+msI+7Fj8vV1MDD7sQq87FDATPkIkjD0bMf+9KCavPYXaFD+Dh5S+0NqxPQQcxz0V98I+lF3tvkM9+D0+WGC9SC3mvVGaNL5Qys6+p+jDvrjB+D0+Z5s8eHwlPJb0gD6f5iY+VCKbPUc7Uj7Usku8o8CXPkp7ub0sTJu91HFsvrjg0j0PKBg+JCzbvaYTkj596ak5zJfKPTvwq76I/WY+YjGwvpPjV74L2Fa8+SCUPdHkHj7Svbk9dpZNPuZ70zxg/+Q+CoEjvh11Ir77WkI+qdXVPN4HWL2Imdg+gC3svcBj0TzCEyq+y2RFPQdSBj1R99W9GQUoP8wCnTqLvNE+5iA+PkUfJb4/JXc+eZgrPYhuVr6cqNI+yI88vutsGD0P3qU+e9zSvTfm9z2yyHk9i2rmPOgZyz3+cZy+1YE9PrBJxz2VMYu982GAPtWo6z0ze9a94IGGPkIDPb1cJW6+veAJvuvnmD5EGcI+Lb16vZGA3L3mrIU8TEeTvqavjL1WZry9B0YVvyHIkb7Wds68EESGPZdY972iGYq80AYTvtj1Nr4xTxo9GMgEPja4ybw8tXw9mJFgPC56wr7eTew8mYkCPqgQXT7dE2o9rqLbPnbgUb4oS4++a9PVPSqhB72aP86+6Wr6PXutEz4XWSy90Yf5PmLIJ713pik96AoCP4ktFD90uDc+X6GVvb2NJz4ppAs++4CTvSSDGT2F2g6/omKqPqVb1z5nJ8s9dA7mvsbzYrwY/H4+fvlTPiorR74hFIA8swsPPJbNVT4zUgK+eTg1PsB007012MS7D/iDvWOkAr9H4Zm9KoDEPaDtTT1k/PO+ut35vmEkPz4Bu1W+okQQPsPhPb7lwQq+erVGu7Ei2r3manK8S6KCviRe/LycQsK+R7F6vA/nq70CqhE/Rrskvv6WFL6XkjC8MjsPP/oIOT2dZIA96HkDP2UTgD7nb7A9cGSMv1p9BD5UMqw+1AMYvtrDSz2Lg0e/fQ5CPsqTCr6PAQi+93KGPng7ij2TbVC+ZbGHvUAb/7z0YJi9QKgJPbNah74Co0c/41O4vBFRBL6CdjM+wjedvmo2OztN7Ro9CPgVu6rcLb7wbBs+tWbovYfTT7x9YO8+Y6pZPfNqyD3FqY+97EXgPdyKUz+Ku428S3SPvSsOKj7LnUM+BpRVP6pWFj68uiO+KrpwPvDrb75EAdq9R5rxvWqtXz6WPFO/Qip9vlE1sj5oHSO/dMxdvk8xfr1Iwy++TypAvYM6tD12uAk+MM8RvgYHlrwGYmQ7mlWJvrItsT5l+Qo+IeYiPVbKUr40gCI+4kFIvgCz+z5AfXu+ZAWgPWO6hj0yL8E+hUQOvmG/kT7hXIk9M4kIvWgZzb0qBAW9KNxTvoxnCL/zVME+0SbevaNglT4Z2ke9BNB4vgdeHb1yAEW9vHdGPZiNBb4GPqQ+LnSYPhIQ+L3sFm68ip2kPfdnir08M/094PRJPqKaoT0HsGw9UxozPxjeG77bsVq+l3jAPZO3VT0a7Ie8d9vhvYjRuL2XUjO+JYTjPOGIaT3c2k89ObO+vr4KnL3tqoW+KzO6viUmL75Q6io+JR/2PEX2tT0bSJQ+XnTuPY59ub0tdDm/FGOKvoItlT6Q7dI8CGCtPLJ2lz5a/Ys93DhevhpQAb6mouK8OZM1PWI1jr/pyz8+jcrXPHVwBz4fVSY/Blo0PS8wET5ArbG+6KMPPc6LKT7TnXO+e4c/voNHfz7pMIm8NNkTvgrm5j1brnK982oVPmcZtT7Z7389hzmEvtC6lL1VG4Y+uQwTvqHLKjw2R2Q9MAR6PfK2TrwEjlY+YoKovghxZL3t2Z4+hYmgPVjOpD2eb2M+YsYtP1j/xz7y1E4+dwrpPO+HgD2imgy+o42gPeNnQL3VXte9oU+QvVnV2z2FiYS+5z/3vDZ8Cr59Wki9DOIBPOrjBD7rsXC+fLdJvuyLGD7HDEA9p7XzvC8JQL3pz1++KsZ3P7BEgj77tTO8VP2svugg1r7HI3a+Nc29vq+vyb6jIbi+2jQSP2r66z42FBs74aGxvcArDb4Cwdu9j2vavBLJzj0FAmi+rPudPaRUn73iUpW+ktuivarSlL1DjVI8J+zxvNBLAL4rUQQ/cEYyvp10Cz7nZ5u+uTexvixKPD3fsQ8+Wh0Rvqj3Ob4GRCe+W7tAvjCxJr5pSLK9s2GvPO2Fh77aCWQ+pdB9Pj087L318QK+msqJPe2tE71rkgM/h3gEvjtIlj2N3sc9TftavsTzsD2iQ6K9hqaAvv7Aeb0p31i9JtWMPjv/sj3IgjK+b6WMPL4wt77DJtM9mD5yPUwe1j7a0gK+axiAPhalWD1j7849F6crvo1E4b5InqG+UV42P9gBrz3FWJU+MmTZvZr+bD7e3Di+/y+MPAm3lDzLjCa/F6hAvu33Ir0wfTk+CmnfvdJCOb687Co9TFcnPma+Lj/1FiE+HjwhvvJGBL7BbMU+ZPt2u9wjnb1coBm9CT1gvgkNmT6sn3S9wHEFPaWwmL6HtKs+hHAUPhABlr7Ensm7hZ6Gvqc+gD5pl9q9ZRtxPaJUAD3+dWE+086EvT+4c748hqs9iG3xvrfFND5MQaA+kuDsPYBaEz5pF4w94mW/vLQ6pL5Psjo9QBhbvbyAv7jHBDe+SdgjPoEgUz3AQ0e/SY0gPp0nQzwtMZi9Mh+euoE4ST2Dpem974YavYMWqz3Cupg9K/6BPoa8ET9tcMY+jLTdPaWzl76FA787oD15PshX4z5FRZ49LvstvjY5tru+p5S+gqXGvQR4sD4eD5C9XYAYvvultb0GaKe9zkWyPNsQ7D4dA7u9JyJ3PcZiMj2yC6W98Mm6vWa1gr5v7Ds+PGzIvuF6KL28OWI8PCMqvl0Jcr6U4HI+K2OBvnIIAL1Prhu+QgqRvAW3/D3wqE2+H6aIPmtwIz0TfSi/0ivBvQxsaL1bxIy+2P+VPPlQ3bz5pWy9LD2rPW+ydr4XXmI88AGhvdmTuL4aOYc9DhUbvrFXMD1bs18/DFl3vfStXT6V9dG9","b":-1.6027143752346809,"mean":3.0772484858181817,"sd":0.7140580842433037,"r":0.8684498740983398,"cg":4.448763157398647,"ce":0.2311997036542172}};
+const modelCache = {};
+const modelFor = sex => modelCache[sex] ??= {...MODEL[sex], w: new Float32Array(Uint8Array.from(atob(MODEL[sex].w), c => c.charCodeAt(0)).buffer)};
+function score(f, sex) {
+  const m = modelFor(sex);
+  let shape = 0, look = 0, o = 0;
+  for (const k of MODEL.use) {
+    let t = 0;
+    for (let i = 0; i < f[k].length; i++) t += m.w[o + i] * f[k][i];
+    o += f[k].length;
+    if (k === "geom") shape += t; else look += t;
+  }
+  const pred = m.b + shape + look, z = (pred - m.mean) / m.sd;
+  return {pred, z, psl: toPsl(z), shape: (shape - m.cg) / m.sd, look: (look - m.ce) / m.sd, mean: m.mean, r: m.r};
+}
+const CANON_THIRDS = [0.283, 0.303, 0.414];   // mesh point 10 is not the hairline, so thirds are compared with the canonical mesh
+const up = (x, zero, full) => clamp((x - zero) / (full - zero), -1, 1);                          // -1..1, 0 at the average
+const off = (x, centre, sd) => -clamp((Math.abs(x - centre) / sd - 0.5) / 2, 0, 1);             // 0 within 0.5 SD, -1 at 2.5 SD
+
+// Head-centred frame: yaw (turn left/right) and roll (tilt) are removed using the 3D positions of symmetric landmark pairs, so
+// widths are measured as on a straight-on photo. Pitch is left alone: the forehead-chin line is tilted in depth on every face.
+const PAIRS = [[33, 263], [133, 362], [61, 291], [234, 454], [172, 397], [58, 288], [129, 358], [70, 300], [105, 334]];
+function headFrame(lm, w, h) {
+  const P = lm.map(p => [p.x * w, p.y * h, p.z * w]);
+  const s = PAIRS.reduce((t, [l, r]) => [t[0] + P[r][0] - P[l][0], t[1] + P[r][1] - P[l][1], t[2] + P[r][2] - P[l][2]], [0, 0, 0]);
+  const yaw = Math.atan2(s[2], s[0]), x1 = Math.hypot(s[0], s[2]), roll = Math.atan2(s[1], x1);
+  const cy = Math.cos(yaw), sy = Math.sin(yaw), cr = Math.cos(roll), sr = Math.sin(roll);
+  return {uv: P.map(p => {
+    const q = [p[0] - P[1][0], p[1] - P[1][1], p[2] - P[1][2]];
+    const x = q[0] * cy + q[2] * sy;                 // rotate about the vertical axis
+    return {x: x * cr + q[1] * sr, y: -x * sr + q[1] * cr};   // then about the viewing axis
+  }), yaw: yaw * 180 / Math.PI};
+}
+
+// raw measurements; `frontal: false` keeps the old image-plane version for comparison
+function measure(lm, w, h, frontal = true) {
+  const f = frontal ? headFrame(lm, w, h) : {uv: lm.map(p => ({x: p.x * w, y: p.y * h})), yaw: 0};
+  const P = i => f.uv[i];
+  const d = (a, b) => Math.hypot(P(a).x - P(b).x, P(a).y - P(b).y);
+  const faceW = d(234, 454);
+
+  // symmetry: mirror left-side points across the forehead-chin axis, compare with right-side points
+  const a = P(10), b = P(152), ux = b.x - a.x, uy = b.y - a.y, n = Math.hypot(ux, uy);
+  const mirror = p => {
+    const t = ((p.x - a.x) * ux + (p.y - a.y) * uy) / (n * n);
+    return {x: 2 * (a.x + t * ux) - p.x, y: 2 * (a.y + t * uy) - p.y};
+  };
+  const pairs = [[33,263],[133,362],[61,291],[70,300],[105,334],[234,454],[172,397],[58,288],[129,358],[468,473]];
+  const asym = pairs.reduce((s, [l, r]) => {
+    const m = mirror(P(l)), q = P(r);
+    return s + Math.hypot(m.x - q.x, m.y - q.y);
+  }, 0) / pairs.length / faceW;
+
+  const tilt = (out, inn) => Math.atan2(P(inn).y - P(out).y, Math.abs(P(out).x - P(inn).x)) * 180 / Math.PI;
+  const canthal = (tilt(33, 133) + tilt(263, 362)) / 2;
+
+  const t1 = d(10, 168), t2 = d(168, 2), t3 = d(2, 152), tot = t1 + t2 + t3;
+  const thirdsErr = [t1, t2, t3].reduce((s, t, i) => s + Math.abs(t / tot - CANON_THIRDS[i]), 0);
+
+  const fwhr = faceW / d(168, 0);
+  const eyeMid = {x: (P(468).x + P(473).x) / 2, y: (P(468).y + P(473).y) / 2};
+  const midface = d(468, 473) / Math.hypot(eyeMid.x - P(13).x, eyeMid.y - P(13).y);
+  const jaw = d(58, 288) / faceW;
+  const eyeSp = d(133, 362) / ((d(33, 133) + d(263, 362)) / 2);
+  const eyeGap = d(133, 362) / faceW;                              // spacing, not confounded by eye size
+  const eyeW = (d(33, 133) + d(263, 362)) / 2 / faceW;              // eye size
+  const eyeOpen = (d(159, 145) / d(33, 133) + d(386, 374) / d(263, 362)) / 2;   // how open the eye is
+  const mouthNose = d(61, 291) / d(129, 358);
+  return {asym, canthal, thirdsErr, fwhr, midface, jaw, eyeSp, eyeGap, eyeW, eyeOpen, mouthNose, yaw: f.yaw};
+}
+
+// per sex: [median, sd, correlation with the raters' score] of every measurement over the 5500 training faces, taken with measure()
+const NORMS = {"m":{"asym":[0.0103,0.0106,0.22],"canthal":[6.316,2.5663,0.22],"fwhr":[2.1822,0.1363,-0.28],"midface":[0.8887,0.0647,-0.23],"jaw":[0.8853,0.0211,-0.34],"eyeGap":[0.2478,0.0167,-0.16],"eyeW":[0.1861,0.0102,0.43],"eyeOpen":[0.3308,0.0442,0.29],"mouthNose":[1.2302,0.104,0.13]},"f":{"asym":[0.0121,0.0122,0.12],"canthal":[8.6857,2.3856,0.28],"fwhr":[2.216,0.1417,-0.23],"midface":[0.9194,0.0658,-0.11],"jaw":[0.8743,0.0241,-0.46],"eyeGap":[0.2553,0.017,0.02],"eyeW":[0.1929,0.0119,0.47],"eyeOpen":[0.3666,0.0481,0.29],"mouthNose":[1.2975,0.1206,0.09]}};
+// [key, name, format, text when above the median, text when below it, definition, forced direction (-1: lower is better)]
+const SPECS = [
+  ["asym", "Симметрия", x => (x * 100).toFixed(1) + "% откл.", "асимметрия выше среднего", "симметрия выше среднего",
+    "Насколько левая и правая половины лица совпадают при отражении по оси лоб — подбородок. Чем меньше отклонение, тем симметричнее лицо.", -1],
+  ["canthal", "Кантальный наклон", x => x.toFixed(1) + "°", "внешние уголки глаз приподняты сильнее среднего (взгляд «хищнее»)", "наклон глаз меньше среднего (взгляд мягче)",
+    "Угол линии от внутреннего к внешнему уголку глаза относительно оси лица. Когда внешний уголок выше, взгляд выглядит энергичнее."],
+  ["eyeW", "Размер глаз", x => (x * 100).toFixed(1) + "% ширины лица", "глаза крупнее среднего", "глаза мельче среднего",
+    "Ширина глаза относительно ширины лица. Показывает размер глаз и не зависит от расстояния между ними."],
+  ["eyeOpen", "Раскрытие глаз", x => x.toFixed(2), "глаза раскрыты шире среднего", "глаза прикрыты сильнее среднего (прищур, нависшее веко, усталость)",
+    "Высота раскрытия глаза, делённая на его ширину. Зависит от освещения, усталости и выражения лица."],
+  ["eyeGap", "Расстояние между глаз", x => (x * 100).toFixed(1) + "% ширины лица", "глаза посажены шире среднего", "глаза посажены ближе среднего",
+    "Расстояние между внутренними уголками глаз, делённое на ширину лица. Размер глаз на него не влияет, поэтому показатель описывает именно посадку."],
+  ["jaw", "Челюсть / скулы", x => x.toFixed(2), "челюсть шире среднего относительно скул (квадратнее)", "челюсть уже среднего относительно скул (V-образнее)",
+    "Ширина углов нижней челюсти относительно ширины скул."],
+  ["fwhr", "fWHR", x => x.toFixed(2), "лицо шире и короче среднего", "лицо уже и длиннее среднего",
+    "Ширина лица по скулам, делённая на расстояние от межбровья до верхней губы."],
+  ["midface", "Средняя часть лица", x => x.toFixed(2), "середина лица короче среднего", "середина лица длиннее среднего",
+    "Расстояние между зрачками, делённое на расстояние от глаз до рта."],
+  ["mouthNose", "Рот / нос", x => x.toFixed(2), "рот шире среднего относительно носа", "рот уже среднего относительно носа",
+    "Ширина рта относительно ширины ноздрей. Улыбка и выражение лица сильно меняют показатель."],
+];
+
+function analyze(lm, w, h, sex) {
+  const raw = measure(lm, w, h, true), turned = Math.abs(raw.yaw) > 25, N = NORMS[sex];
+  const cap = t => t[0].toUpperCase() + t.slice(1);
+  const rows = SPECS.map(([key, name, fmtv, hi, lo, what, force]) => {
+    const [med, sd, rr] = N[key], x = raw[key], z = (x - med) / sd, a = Math.abs(z);
+    // a measurement counts as directional when raters' scores clearly moved with it (|r| >= 0.2) in this sex
+    const dir = force ?? (Math.abs(rr) >= 0.2 ? Math.sign(rr) : 0), skip = key === "asym" && turned;
+    const s = dir ? clamp(dir * z / 2, -1, 1) : -clamp((a - 0.5) / 2, 0, 1);
+    const side = cap(z > 0 ? hi : lo), r2 = `r=${rr.toFixed(2)}`;
+    const note = skip ? "Не учтена: голова повёрнута слишком сильно. Нужен строгий анфас."
+      : a < 0.5 ? (dir ? "Около среднего по выборке: ни плюса, ни минуса." : "В пределах нормы: близко к среднему по выборке.")
+      : force ? `${side}. ${dir * z > 0 ? "Чем симметричнее лицо, тем лучше оно воспринимается." : "Заметная асимметрия воспринимается хуже."}`
+      : dir ? `${side}. В обучающих оценках такая сторона ценилась ${dir * z > 0 ? "выше" : "ниже"} (связь ${r2}).`
+      : `${side}. Связь с оценками слабая (${r2}), на итоговый PSL это влияет мало.`;
+    return {name, shown: skip ? "голова повёрнута" : `${fmtv(x)} · ${Math.round(percentile(4 + z))}-й перцентиль`, s: skip ? 0 : s, w: skip ? 0 : 1,
+      dir: dir ? 1 : 0, z, side: z > 0 ? "high" : "low", note,
+      what: `${what} Перцентиль показывает, какая доля людей выборки вашего пола ниже вас по этому показателю.`};
+  });
+
+  // plain-language description of the face, relative to people of the same sex
+  const lvl = (key, [lo, mid, hi]) => { const z = (raw[key] - N[key][0]) / N[key][1]; return z < -0.5 ? lo : z > 0.5 ? hi : mid; };
+  const traits = [
+    ["Форма лица", lvl("fwhr", ["узкое и вытянутое", "средней ширины", "широкое и короткое"])],
+    ["Глаза", `${lvl("eyeW", ["мелкие", "средние", "крупные"])}, ${lvl("eyeOpen", ["прикрытые", "средне раскрытые", "широко раскрытые"])}, посадка ${lvl("eyeGap", ["близкая", "средняя", "широкая"])}, ${lvl("canthal", ["наклон ниже среднего", "наклон около среднего", "приподнятые внешние уголки"])}`],
+    ["Челюсть", lvl("jaw", ["узкая, V-образная", "средней ширины", "широкая, квадратная"])],
+    ["Середина лица", lvl("midface", ["удлинённая", "средней длины", "компактная"])],
+    ["Рот и нос", lvl("mouthNose", ["узкий рот на фоне носа", "сбалансированные", "широкий рот на фоне носа"])],
+    ["Симметрия", turned ? "не определена (голова повёрнута)" : lvl("asym", ["выше среднего", "около среднего", "ниже среднего"])],
+  ];
+  return {rows, turned, traits};
+}
+
+const fmt = v => { const r = Math.round(v * 10) / 10; return (r < 0 ? "−" : "+") + Math.abs(r).toFixed(1); };
+const esc = t => String(t).replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
+const pct = p => p.toFixed(p > 99 ? 1 : 0);
+// the "normie" tiers are split into thirds: LLTN MLTN HLTN, LMTN MMTN HMTN, LHTN MHTN HHTN
+const THIRDS = ["нижняя", "средняя", "верхняя"];
+function subTier(psl) {
+  const i = TIERS.findIndex(t => psl < t[0]), t = TIERS[i];
+  if (!["LTN", "MTN", "HTN"].includes(t[1])) return null;
+  const lo = TIERS[i - 1][0], k = Math.min(2, Math.floor((psl - lo) / (t[0] - lo) * 3));
+  return {name: "LMH"[k] + t[1], part: THIRDS[k] + " треть " + t[1]};
+}
+const tierLabel = psl => subTier(psl)?.name ?? tier(psl)[1];
+const subLine = psl => { const s = subTier(psl); return s ? `<span class="subtier" title="${s.part}">${s.name} · ${s.part}</span>` : ""; };
+const quality = r => r.dir ? (r.s + 1) / 2 : 1 + r.s;   // 0..1 for the bars and for comparing two faces
+
+function summary(sc, t, ti, turned) {
+  const next = TIERS[ti + 1], st = subTier(sc.psl);
+  const lookNote = sc.look < -0.3 ? "Внешний вид тянет оценку вниз. Это может быть возраст, полнота лица, состояние кожи, ухоженность, освещение, поза или улыбка: модель видит всё это вместе и не разделяет."
+    : sc.look > 0.3 ? "Внешний вид (кожа, чёткость черт, ухоженность, возраст) поднимает оценку." : "Внешний вид (кожа, возраст, ухоженность) на уровне среднего.";
+  const shapeNote = sc.shape < -0.3 ? "Форма лица ниже среднего по сравнению с обучающими лицами." : sc.shape > 0.3 ? "Форма лица выше среднего." : "Форма лица близка к среднему.";
+  return [
+    `<b>Как посчитано.</b> Оценку даёт модель, обученная на 5 500 лицах, которым 60 человек поставили баллы от 1 до 5 (набор SCUT-FBP5500). Она смотрит и на форму лица (478 точек), и на внешний вид лица целиком. Для вашего лица она предсказала ${sc.pred.toFixed(2)} из 5 при среднем ${sc.mean.toFixed(2)} в наборе. Это ${sc.z >= 0 ? "+" : "−"}${Math.abs(sc.z).toFixed(1)} стандартных отклонений, то есть <b>${sc.psl.toFixed(1)} PSL</b> (4,0 = среднее лицо). Это ${esc(t[1])}${st ? ` (${st.name}, ${st.part})` : ""}, лучше примерно ${pct(percentile(sc.psl))}% людей по модели распределения.`,
+    `<b>Из чего сложилось.</b> Форма лица ${fmt(sc.shape)} PSL, внешний вид ${fmt(sc.look)} PSL от среднего. ${shapeNote} ${lookNote}`,
+    next ? `<b>До следующего тира</b> (${esc(next[1])}) не хватает ${(t[0] - sc.psl).toFixed(1)} PSL.` : "",
+    `<b>Насколько этому верить.</b> На лицах, которых модель не видела при обучении, её оценки совпали с оценками людей с корреляцией ${sc.r.toFixed(2)} (1 был бы идеал), типичная ошибка около ±0,5 PSL. Но обучающие лица: возраст 15–60, нейтральное выражение, анфас, азиаты и европеоиды. Дети, пожилые, улыбка, сильная полнота, необычный ракурс и другие типажи вне этих данных, там оценка менее надёжна. Оценки дали 60 человек, это их вкус, а не истина${turned ? ". Голова повёрнута, поэтому результат ещё менее точен" : ""}.`,
+  ].filter(Boolean).map(p => `<p>${p}</p>`).join("");
+}
+
+const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
+// ease-out count-up; resolves when the number has landed
+function animateNumber(el, to, {delay = 0, ms = 1100} = {}) {
+  return new Promise(done => {
+    if (REDUCED) { el.textContent = to.toFixed(1); return done(); }
+    const t0 = performance.now() + delay;
+    (function tick(now) {
+      const k = Math.min(1, Math.max(0, (now - t0) / ms));
+      el.textContent = (to * (k === 1 ? 1 : 1 - 2 ** (-10 * k))).toFixed(1);
+      if (k < 1) requestAnimationFrame(tick);
+      else { el.closest(".hero,.mini,.vs-score")?.classList.add("done"); done(); }
+    })(performance.now());
+  });
+}
+// the score comes first; every other card waits for `ready`, then rises in order as it scrolls into view
+function revealCards(root, ready) {
+  const cards = [...root.querySelectorAll(".card:not(.hero)")];
+  cards.forEach(c => c.classList.add("pending"));
+  const show = (c, d = 0) => {
+    c.style.setProperty("--d", d + "s");
+    c.classList.replace("pending", "in");
+    c.querySelectorAll("[data-num]").forEach(el => animateNumber(el, +el.dataset.num, {delay: d * 1000 + 250, ms: 900}));
+    setTimeout(() => c.querySelectorAll("[data-w]").forEach(u => u.style.width = u.dataset.w + "%"), d * 1000 + 300);
+  };
+  if (REDUCED || !("IntersectionObserver" in window)) { cards.forEach(c => show(c)); return; }
+  ready.then(() => {
+    const io = new IntersectionObserver(es => {
+      es.filter(e => e.isIntersecting).forEach((e, i) => { show(e.target, i * 0.1); io.unobserve(e.target); });
+    }, {threshold: 0.05});
+    cards.forEach(c => { if (c.isConnected) io.observe(c); });
+  });
+}
+
+// advice per measurement: [full text, one-liner]; picked by which side of the average the value is on
+const TIPS = {
+  "Симметрия": {any: ["Снимайтесь строго анфас при ровном свете спереди: наклон головы, мимика и тени сильно искажают симметрию. Ровная стрижка, подровненные брови и борода выравнивают облик визуально. Настоящую скелетную асимметрию можно только маскировать, любые вмешательства возможны лишь по показаниям у врача.", "переснять ровно анфас при ровном свете, выровнять стрижку, брови и бороду"]},
+  "Кантальный наклон": {any: ["Угол глаз задан костями и без операции не меняется. Визуально «приподнимают» взгляд брови с чуть поднятым внешним краем, достаточный сон и меньше отёков под глазами (соль, алкоголь), камера чуть ниже уровня глаз со слегка опущенным подбородком, очки с приподнятым внешним краем оправы.", "брови с чуть поднятым внешним краем, сон без отёков, камера чуть ниже уровня глаз"]},
+  "Размер глаз": {
+    low: ["Размер глаз задан костями, но визуально их увеличивают светлый карандаш или тень во внутренних уголках, подкручивание ресниц, ухоженные не слишком тонкие брови и выспавшийся взгляд без отёков. Тёмные круги и усталый вид уменьшают глаза визуально.", "светлая тень во внутренних уголках, ухоженные брови, выспавшийся взгляд без отёков"],
+    high: ["Крупные глаза воспринимаются как плюс, менять ничего не нужно.", "менять не нужно"]},
+  "Раскрытие глаз": {
+    low: ["Прищур и усталость уменьшают раскрытие. Помогают сон, мягкий свет спереди (яркий свет сверху вызывает прищур) и расслабленный чуть шире открытый взгляд на фото. Нависшее веко открывают аккуратные брови без лишней длины и очки без тёмных линз.", "выспаться, свет спереди без прищура, открытый взгляд на фото"],
+    high: ["Широко раскрытые глаза воспринимаются как плюс, менять ничего не нужно.", "менять не нужно"]},
+  "Расстояние между глаз": {
+    low: ["Не сводите брови к переносице: убирайте лишние волоски между бровями и оставляйте промежуток. Светлая тень во внутренних уголках и оправа очков с прозрачным мостом визуально раздвигают глаза. В выборке эта метрика почти не влияла на оценки, так что менять её не обязательно.", "оставить промежуток между бровями, светлая тень во внутренних уголках, прозрачный мост очков"],
+    high: ["Тёмная переносица оправы очков и брови, чуть смещённые к центру, визуально сближают глаза. В выборке эта метрика почти не влияла на оценки, так что менять её не обязательно.", "оправа с заметной переносицей, брови ближе к центру"]},
+  "Челюсть / скулы": {
+    high: ["В выборке выше оценивались лица с более узкой нижней частью относительно скул. Она во многом зависит от жира на лице и шее: при лишнем весе его умеренное снижение делает овал собраннее. Аккуратная борода и стрижка с объёмом сверху визуально сужают нижнюю часть. Форму кости меняет только хирургия, это решение только вместе с врачом.", "при лишнем весе снизить жир на лице и шее, аккуратная борода, объём сверху стрижки"],
+    low: ["Узкая нижняя часть в выборке ценилась выше, менять ничего не нужно.", "менять не нужно"]},
+  "fWHR": {
+    high: ["Лицо шире и короче среднего, а в выборке выше оценивались более узкие и вытянутые лица. Стрижка с объёмом сверху и короче по бокам вытягивает лицо, а лишний жир на щеках его расширяет, поэтому при избыточном весе помогает снижение веса.", "объём сверху, короче по бокам, при избыточном весе снизить жир на лице"],
+    low: ["Узкое вытянутое лицо в выборке ценилось выше, менять ничего не нужно.", "менять не нужно"]},
+  "Средняя часть лица": {
+    low: ["Расстояние от глаз до рта задано скелетом. Визуально его сокращают густые чёткие брови, заметная оправа очков, усы или щетина вокруг рта.", "чёткие брови, заметная оправа очков, щетина или усы"],
+    high: ["Середина лица короче среднего: это скелетная пропорция. Визуально её удлиняют щетина или усы вокруг рта и менее заметная оправа очков.", "щетина или усы, незаметная оправа очков"]},
+  "Рот / нос": {
+    low: ["Показатель зависит от мимики: при нейтральном выражении рот выглядит уже. Уход за губами (увлажнение, бальзам с SPF) и аккуратные усы или борода у рта делают контур чётче.", "уход за губами, аккуратная щетина у рта"],
+    high: ["Широкий рот чаще воспринимается как плюс. Следите за аккуратностью губ и бороды.", "уход за губами"]},
+};
+const tipFor = (r, i = 0) => r.w === 0 ? "Переснимите фото строго анфас, тогда симметрия будет учтена."
+  : r.s > -0.2 ? (i ? "" : r.s >= 0.2 ? "Менять не нужно: показатель в хорошей зоне." : "Около среднего: менять не обязательно.")
+  : (TIPS[r.name][r.side] ?? TIPS[r.name].any ?? TIPS[r.name].low)[i];
+
+const LOOK_LIST = [
+  "<b>Кожа.</b> Ежедневный SPF, мягкое очищение и увлажнение. Ровная кожа сильно влияет на общий вид; при акне, пигментации и покраснениях лучше к дерматологу.",
+  "<b>Вес и отёки.</b> При избыточном весе его умеренное снижение (медленно и с врачом или диетологом) заметнее всего меняет лицо. Регулярный сон, вода, меньше алкоголя и соли убирают отёки и тени под глазами.",
+  "<b>Стрижка и уход.</b> Стрижка по форме лица, ухоженные брови, аккуратная борода или гладкое бритьё, чистые опрятные волосы.",
+  "<b>Зубы.</b> Гигиена и при необходимости ортодонт: общее впечатление зависит и от этого, хотя модель обучена на нейтральных лицах.",
+  "<b>Осанка и положение головы.</b> Выпрямленная шея и спина убирают «втянутую» голову и двойной подбородок.",
+];
+const PHOTO_LIST = [
+  "строго анфас, голова ровно, взгляд в камеру;",
+  "мягкий ровный свет спереди (например, окно перед лицом), без жёстких теней и без фильтров;",
+  "камера на уровне глаз с расстояния 1,5–2 м и приближением, а не селфи на вытянутой руке (оно искажает черты);",
+  "нейтральное выражение, без очков, кепки и чёлки на глазах;",
+  "хорошее разрешение без сильной ретуши.",
+];
+
+function improve(sc, rows, turned) {
+  const weak = rows.filter(r => r.w && r.s < -0.2).sort((p, q) => p.s - q.s).slice(0, 3);
+  const list = a => `<ul>${a.map(x => `<li>${x}</li>`).join("")}</ul>`;
+  const parts = [
+    `<p><b>Где резерв.</b> Внешний вид сейчас даёт ${fmt(sc.look)} PSL, форма лица ${fmt(sc.shape)} PSL от среднего. ${sc.look < 0.3 ? "Внешний вид самая гибкая часть оценки: кожу, вес, уход, стрижку и фото можно менять." : "Внешний вид уже выше среднего: поддерживайте его."} Форма лица определяется костями и почти не меняется, но её можно визуально корректировать причёской, бородой, очками и ракурсом.</p>`,
+    weak.length ? `<p><b>Слабые измерения и что с ними делать.</b></p>${list(weak.map(r => `<b>${r.name}</b> (${esc(r.shown)}): ${esc(tipFor(r, 1))}.`))}` : `<p>Слабых измерений нет: все показатели лица в нормальной зоне.</p>`,
+    `<p><b>Внешний вид: что можно изменить.</b></p>${list(LOOK_LIST)}`,
+    `<p><b>Фото${turned ? " (сейчас голова повёрнута, переснимите)" : ""}.</b> Модель обучена на фото с такими условиями, поэтому так оценка будет точнее:</p>${list(PHOTO_LIST)}`,
+    `<p class="why">Это общие советы, а не медицинские. Эффект от них заранее оценить нельзя: PSL считает модель целиком, а не каждое измерение по отдельности. Кожу, вес и любые косметологические или хирургические вмешательства обсуждайте с врачом. Приложение измеряет вкус группы оценщиков, а не вашу ценность.</p>`,
+  ];
+  // reserve + weak measurements + disclaimer on the left, what to change and how to shoot on the right
+  return `<div class="imp"><div>${[parts[0], parts[1], parts[4]].join("")}</div><div>${[parts[2], parts[3]].join("")}</div></div>`;
+}
+
+// ---------- roulette: tiers spin past a pointer, hesitate on a wrong neighbour, then settle on the real one ----------
+const tierRange = i => i === 0 ? "< 3" : i === TIERS.length - 1 ? "8+" : `${TIERS[i - 1][0]}–${TIERS[i][0]}`;
+const REEL_LEN = 36, REEL_T = 28;   // the real tier sits on tile REEL_T, the decoy on the tile just before it
+function buildReel(real) {
+  const pick = a => a[Math.floor(Math.random() * a.length)];
+  const near = [real - 1, real + 1, real - 2, real + 2].filter(i => i >= 0 && i < TIERS.length);
+  const adj = near.filter(i => Math.abs(i - real) === 1);
+  const tiles = [];
+  for (let k = 0; k < REEL_LEN; k++) {
+    let i = k === REEL_T ? real : k === REEL_T - 1 ? pick(Math.random() < 0.8 && adj.length ? adj : near) : pick(TIERS.map((_, j) => j));
+    if (k && i === tiles[k - 1] && k !== REEL_T) i = (i + 1 + Math.floor(Math.random() * (TIERS.length - 1))) % TIERS.length;
+    tiles.push(i);
+  }
+  if (tiles[REEL_T - 2] === tiles[REEL_T - 1]) tiles[REEL_T - 2] = (tiles[REEL_T - 1] + 3) % TIERS.length;
+  if (tiles[REEL_T + 1] === real) tiles[REEL_T + 1] = (real + 4) % TIERS.length;
+  return tiles;
+}
+const reelHTML = real => `<div class="reel">
+  <p class="reel-title">Определяем рейт</p>
+  <div class="reel-win"><div class="reel-strip">${buildReel(real).map(i =>
+    `<div class="tile" style="--c:${TIERS[i][2]}"><b>${TIERS[i][1]}</b><span>${tierRange(i)}</span></div>`).join("")}</div><i class="reel-ptr"></i></div>
+  <button type="button" class="reel-skip">Пропустить</button>
+</div>`;
+
+// spins the strip: long deceleration onto the decoy, a short hesitation, then an acceleration onto the real tile
+function runReel(card) {
+  return new Promise(done => {
+    const win = card.querySelector(".reel-win"), strip = card.querySelector(".reel-strip"), tiles = [...strip.children];
+    const T = REEL_T, F = REEL_T - 1;
+    const land = () => {
+      card.style.setProperty("--c", card.dataset.c);   // the card takes the real tier's colour only now
+      tiles[T].classList.add("win"); win.classList.add("landed");
+      setTimeout(() => { card.classList.remove("spinning"); done(); }, 650);
+    };
+    if (REDUCED) { card.style.setProperty("--c", card.dataset.c); card.classList.remove("spinning"); return done(); }
+    const place = u => strip.style.transform = `translateX(${win.clientWidth / 2 - (u + 0.5) * tiles[0].offsetWidth}px)`;
+    const u0 = 0.2 + Math.random() * 0.6, A = 2300 + Math.random() * 500, pause = 300 + Math.random() * 150, B = 800;
+    const ease = x => 1 - (1 - x) ** 3.4, inOut = x => x < 0.5 ? 4 * x ** 3 : 1 - (-2 * x + 2) ** 3 / 2;
+    let raf, hot = -1, ended = false;
+    const setHot = k => { if (k !== hot) { tiles[hot]?.classList.remove("hot"); tiles[k]?.classList.add("hot"); hot = k; } };
+    const end = () => { if (ended) return; ended = true; cancelAnimationFrame(raf); place(T); setHot(T); land(); };
+    const t0 = performance.now();
+    const frame = now => {
+      const t = now - t0;
+      let u;
+      if (t < A) u = u0 + (F - u0) * ease(t / A);
+      else if (t < A + pause) u = F + 0.05 * ((t - A) / pause);
+      else if (t < A + pause + B) u = F + 0.05 + (T - F - 0.05) * inOut((t - A - pause) / B);
+      else return end();
+      place(u); setHot(Math.round(u));
+      raf = requestAnimationFrame(frame);
+    };
+    card.querySelector(".reel-skip").addEventListener("click", end);
+    win.addEventListener("click", end);
+    place(u0); raf = requestAnimationFrame(frame);
+  });
+}
+
+// full report for the single-photo mode
+function renderFull({rows, traits, turned, sc}, spin) {
+  const ti = TIERS.indexOf(tier(sc.psl)), t = TIERS[ti], psl = sc.psl;
+  return `
+    <div class="card hero span2 has-reel${spin ? " spinning" : ""}" ${spin ? "" : `style="--c:${t[2]}"`} data-c="${t[2]}">
+      ${spin ? `<div class="collapse reel-box"><div class="clip">${reelHTML(ti)}</div></div>` : ""}
+      <div class="collapse body-box"><div class="clip"><div class="hero-grid">
+        <div class="hero-score">
+          <small>PSL</small>
+          <b data-num="${psl}">0.0</b>
+          <em>${t[1]}</em>${subLine(psl)}
+        </div>
+        <div class="hero-info">
+          <p class="hero-verdict">${t[3]}</p>
+          <p class="hero-pct">Лучше ~${pct(percentile(psl))}% людей <span>(по модели распределения, не по замерам)</span></p>
+        </div>
+        <div class="hero-ladder">
+          <div class="ladder">${TIERS.map((x, i) =>
+            `<span style="--c:${x[2]};--i:${i}" class="${i <= ti ? "on" : ""} ${i === ti ? "me" : ""}" title="${x[1]}"></span>`).join("")}</div>
+          <div class="ladder-names">${TIERS.map((x, i) => `<span style="--i:${i}">${x[1]}</span>`).join("")}</div>
+        </div>
+      </div></div></div>
+    </div>
+    <div class="card span2">
+      <h2>Измерения лица</h2>
+      <p class="why" style="margin:0 0 14px">Это пояснения к форме лица. В число PSL они напрямую не входят, его считает модель целиком.</p>
+      <div class="measures">${measures(rows)}</div>
+    </div>
+    <div class="card span2"><h2>Особенности лица</h2>
+      <dl class="traits">${traits.map(([k, v]) => `<div><dt>${k}</dt><dd>${esc(v)}</dd></div>`).join("")}</dl>
+    </div>
+    <div class="card sum cols span2"><h2>Общая оценка</h2>${summary(sc, t, ti, turned)}</div>
+    <div class="card sum span2"><h2>Как улучшить</h2>${improve(sc, rows, turned)}</div>`;
+}
+const measures = rows => rows.map(r => `<div class="row"><div><span>${r.name}</span><i>${esc(r.shown)}</i></div>
+  <div class="bar"><u data-w="${Math.round(quality(r) * 100)}" style="background:${quality(r) > .7 ? "#22c55e" : quality(r) > .4 ? "#eab308" : "#ef4444"}"></u></div>
+  <p class="why">${esc(r.note)}</p>
+  <p class="why tip"><b>Как улучшить:</b> ${esc(tipFor(r))}</p>
+  <details><summary>Что это значит</summary><p class="why">${esc(r.what)}</p></details></div>`).join("");
+
+// compact card for a battle slot
+function renderCompact({turned, sc}, spin) {
+  const ti = TIERS.indexOf(tier(sc.psl)), t = TIERS[ti];
+  return `<div class="mini has-reel${spin ? " spinning" : ""}" ${spin ? "" : `style="--c:${t[2]}"`} data-c="${t[2]}">
+    ${spin ? `<div class="collapse reel-box"><div class="clip">${reelHTML(ti)}</div></div>` : ""}
+    <div class="collapse body-box"><div class="clip"><div class="mini-body"><b data-num="${sc.psl}">0.0</b><em>${t[1]}</em>${subLine(sc.psl)}
+    <p>Форма ${fmt(sc.shape)} · Вид ${fmt(sc.look)}</p>${turned ? '<p class="warn">Голова повёрнута, оценка менее точна</p>' : ""}</div></div></div></div>`;
+}
+
+// ---------- battle verdict ----------
+const PAIR_SD = 0.72;   // sd of the difference of two predictions: rmse about 0.51 PSL per face, times sqrt(2)
+function verdict(a, b) {
+  const A = {geo: a.last.geo, sc: score(a.last.feat, a.sex())}, B = {geo: b.last.geo, sc: score(b.last.feat, b.sex())};
+  const diff = A.sc.psl - B.sc.psl, win = diff >= 0 ? "A" : "B", [W, L] = diff >= 0 ? [A, B] : [B, A], gap = Math.abs(diff);
+  const pA = percentile(4 + (A.sc.z - B.sc.z) / PAIR_SD * 1) ;               // P(A is the one raters prefer)
+  const label = gap < 0.25 ? "Ничья" : gap < 0.75 ? `${win} слегка моггит ${win === "A" ? "B" : "A"}` : gap < 1.5 ? `${win} моггит ${win === "A" ? "B" : "A"}`
+    : gap < 2.5 ? `${win} сильно моггит ${win === "A" ? "B" : "A"}` : `${win} уничтожает ${win === "A" ? "B" : "A"}`;
+  const lose = win === "A" ? "B" : "A", pWin = win === "A" ? pA : 100 - pA;
+
+  const why = [];
+  const dLook = W.sc.look - L.sc.look, dShape = W.sc.shape - L.sc.shape;
+  const parts = [["внешний вид (кожа, чёткость черт, возраст, полнота лица, ухоженность)", dLook], ["форма лица (пропорции и структура)", dShape]].sort((p, q) => q[1] - p[1]);
+  if (gap >= 0.25) why.push(`Главное преимущество ${win}: ${parts[0][0]}, на ${fmt(parts[0][1]).slice(1)} PSL впереди.`);
+  if (parts[1][1] >= 0.2 && gap >= 0.25) why.push(`Дополнительно у ${win} лучше ${parts[1][0]} (+${parts[1][1].toFixed(1)}).`);
+  const back = parts.find(p => p[1] <= -0.2);
+  if (back) why.push(`Зато у ${lose} лучше ${back[0]} (+${(-back[1]).toFixed(1)}), но этого не хватило.`);
+  // per-measurement differences, biggest first
+  const ra = A.geo.rows, rb = B.geo.rows;
+  ra.map((r, i) => ({r, o: rb[i]})).filter(x => x.r.w && x.o.w)
+    .map(x => ({...x, d: quality(x.r) - quality(x.o)})).filter(x => Math.abs(x.d) >= 0.2)
+    .sort((p, q) => Math.abs(q.d) * q.r.w - Math.abs(p.d) * p.r.w).slice(0, 3)
+    .forEach(x => {
+      const best = x.d > 0 ? "A" : "B";
+      why.push(`${x.r.name}: A ${x.r.shown} против B ${x.o.shown}. У ${best} показатель ближе к ${x.r.dir ? "идеалу" : "норме"}.`);
+    });
+  if (!why.length) why.push("Явного преимущества ни по внешнему виду, ни по форме лица нет: оба лица оценены почти одинаково.");
+
+  const caveats = [];
+  if (gap < PAIR_SD) caveats.push("Разница меньше типичной ошибки модели для пары фото (около ±0,7 PSL). Смена ракурса, света или выражения лица может перевернуть исход.");
+  if (a.sex() !== b.sex()) caveats.push("Сравниваются лица разного пола: каждое оценено своей моделью относительно людей своего пола.");
+  if (A.geo.turned || B.geo.turned) caveats.push(`На ${A.geo.turned && B.geo.turned ? "обоих фото" : A.geo.turned ? "фото A" : "фото B"} голова повёрнута: оценка менее точна.`);
+  caveats.push("Это вкус 60 оценщиков из обучающего набора, а не объективная истина. Кожа, волосы и другие детали вне датасета учитываются только через общий внешний вид лица.");
+
+  const tA = tier(A.sc.psl), tB = tier(B.sc.psl);
+  return `
+    <div class="card vs">
+      <small>ИТОГ БАТЛА</small>
+      <h2 class="vs-title">${gap < 0.25 ? "Ничья" : label}</h2>
+      <div class="vs-score">
+        <div style="--c:${tA[2]}"><b data-num="${A.sc.psl}">0.0</b><span>A · ${tierLabel(A.sc.psl)}</span></div>
+        <i>vs</i>
+        <div style="--c:${tB[2]}"><b data-num="${B.sc.psl}">0.0</b><span>B · ${tierLabel(B.sc.psl)}</span></div>
+      </div>
+      <div class="split" role="img" aria-label="Шанс, что оценщики предпочтут A: ${pct(pA)}%"><u data-w="${pA.toFixed(1)}"></u></div>
+      <div class="split-l"><span>A ${pct(pA)}%</span><span>B ${pct(100 - pA)}%</span></div>
+      <p class="why" style="text-align:center">${gap < 0.25 ? "Почти равны" : `Шанс, что люди выберут ${win} (${pct(pWin)}%)`}.</p>
+    </div>
+    <div class="card sum"><h2>Почему</h2><ul>${why.map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>
+    <div class="card sum"><h2>Оговорки</h2><ul>${caveats.map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>`;
+}
+
+// ---------- model loading (cached promises so two parallel uploads create each model once) ----------
+let lmkP, fsP;
+const getFileset = () => fsP ??= FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm");
+const getLandmarker = () => lmkP ??= getFileset().then(fs => FaceLandmarker.createFromOptions(fs, {
+  baseOptions: {modelAssetPath: "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task"},
+  runningMode: "IMAGE", numFaces: 1,
+}));
+const EMB_URL = {
+  S: "https://storage.googleapis.com/mediapipe-models/image_embedder/mobilenet_v3_small/float32/1/mobilenet_v3_small.tflite",
+  L: "https://storage.googleapis.com/mediapipe-models/image_embedder/mobilenet_v3_large/float32/1/mobilenet_v3_large.tflite",
+};
+const embP = {};
+const getEmbedder = k => embP[k] ??= getFileset().then(fs => ImageEmbedder.createFromOptions(fs,
+  {baseOptions: {modelAssetPath: EMB_URL[k]}, runningMode: "IMAGE", l2Normalize: true}));
+
+// ---------- features: normalised landmark shape + embeddings of the face crop (same code builds the training data) ----------
+// similarity-normalise: centre, rotate eye line horizontal, unit RMS size; keeps z so face depth counts
+function geomVec(lm, w, h) {
+  const pts = lm.map(p => [p.x * w, p.y * h, p.z * w]);
+  const c = [0, 1, 2].map(k => pts.reduce((s, p) => s + p[k], 0) / pts.length);
+  const ang = Math.atan2(pts[263][1] - pts[33][1], pts[263][0] - pts[33][0]), co = Math.cos(-ang), si = Math.sin(-ang);
+  const q = pts.map(p => [(p[0] - c[0]) * co - (p[1] - c[1]) * si, (p[0] - c[0]) * si + (p[1] - c[1]) * co, p[2] - c[2]]);
+  const rms = Math.sqrt(q.reduce((s, p) => s + p[0] ** 2 + p[1] ** 2, 0) / q.length);
+  return Float32Array.from(q.flat().map(v => v / rms));
+}
+function faceCrop(c, lm, flip) {
+  const xs = lm.map(p => p.x * c.width), ys = lm.map(p => p.y * c.height);
+  const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+  const side = Math.max(x1 - x0, y1 - y0) * 1.3, cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+  const o = document.createElement("canvas"); o.width = o.height = 224;
+  const x = o.getContext("2d");
+  if (flip) { x.translate(224, 0); x.scale(-1, 1); }
+  x.drawImage(c, cx - side / 2, cy - side / 2, side, side, 0, 0, 224, 224);
+  return o;
+}
+async function featuresOf(c, res) {
+  const lm = res.faceLandmarks[0], f = {lm, geom: geomVec(lm, c.width, c.height)};
+  const crops = MODEL.flip ? [faceCrop(c, lm, false), faceCrop(c, lm, true)] : [faceCrop(c, lm, false)];
+  for (const k of MODEL.use.filter(k => k !== "geom")) {
+    const e = await getEmbedder(k);
+    const v = crops.map(cr => e.embed(cr).embeddings[0].floatEmbedding);
+    f[k] = Float32Array.from(v[0], (_, i) => v.reduce((t, a) => t + a[i], 0) / v.length);
+  }
+  return f;
+}
+function scaled(img, side) {
+  const k = side / Math.max(img.naturalWidth, img.naturalHeight), c = document.createElement("canvas");
+  c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k);
+  c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+  return c;
+}
+// hook for offline training: same pipeline as the page, one scale
+window.__feat = async url => {
+  const img = new Image(); img.src = url; await img.decode();
+  const c = scaled(img, 768), res = (await getLandmarker()).detect(c);
+  if (!res.faceLandmarks.length) return null;
+  const f = await featuresOf(c, res);
+  return Object.fromEntries(MODEL.use.map(k => [k, Array.from(f[k])]));
+};
+
+window.__measure = async url => {
+  const img = new Image(); img.src = url; await img.decode();
+  const c = scaled(img, 768), res = (await getLandmarker()).detect(c);
+  if (!res.faceLandmarks.length) return null;
+  const lm = res.faceLandmarks[0];
+  return {flat: measure(lm, c.width, c.height, false), front: measure(lm, c.width, c.height, true)};
+};
+
+window.__lm = async url => {   // test hooks: landmarks of a photo, and measure() on arbitrary landmarks
+  const img = new Image(); img.src = url; await img.decode();
+  const c = scaled(img, 768), res = (await getLandmarker()).detect(c);
+  return res.faceLandmarks.length ? {lm: res.faceLandmarks[0].map(p => ({x: p.x, y: p.y, z: p.z})), w: c.width, h: c.height} : null;
+};
+window.__measureLm = (lm, w, h, frontal) => measure(lm, w, h, frontal);
+
+class UserError extends Error {}
+const BAD_FORMAT = "Не удалось открыть файл как изображение. Браузер не поддерживает этот формат (например, HEIC): сохраните фото как JPG или PNG.";
+
+async function loadImage(file) {
+  const url = URL.createObjectURL(file), img = new Image();
+  try {
+    img.src = url;
+    await img.decode();
+    return img;
+  } catch {
+    throw new UserError(BAD_FORMAT);
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+// draws the photo and the landmarks on `canvas`; returns what both modes need
+async function analyzeFile(file, canvas) {
+  const img = await loadImage(file);
+  const long = Math.max(img.naturalWidth, img.naturalHeight), pv = scaled(img, Math.min(long, 1024));
+  canvas.width = pv.width; canvas.height = pv.height;
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(pv, 0, 0);
+  // landmark jitter: average features over three scales
+  const lmk = await getLandmarker(), runs = [];
+  for (const side of [512, 768, 1024]) {
+    const c = scaled(img, side), res = lmk.detect(c);
+    if (res.faceLandmarks.length) runs.push({c, ...(await featuresOf(c, res))});
+  }
+  if (!runs.length) throw new UserError("Лицо не найдено. Нужно чёткое фото анфас.");
+  const avg = k => Float32Array.from(runs[0][k], (_, i) => runs.reduce((t, r) => t + r[k][i], 0) / runs.length);
+  const mid = runs[runs.length >> 1];
+  ctx.fillStyle = "rgba(103,232,249,.85)";
+  const r = Math.max(1.5, canvas.width / 400);
+  for (const p of mid.lm) ctx.fillRect(p.x * canvas.width - r / 2, p.y * canvas.height - r / 2, r, r);
+  return {feat: Object.fromEntries(MODEL.use.map(k => [k, avg(k)])), lm: mid.lm, W: mid.c.width, H: mid.c.height};
+}
+
+// ---------- slots: one drop zone + photo + result; the rate mode has one, the battle mode two ----------
+const FORMATS = "PNG, JPEG, WebP, GIF, BMP, AVIF…";
+let slotId = 0;
+const UPLOAD_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>`;
+const PLACEHOLDER = `<div class="placeholder">
+  <h3>Загрузите фото, и здесь появится <em>разбор лица</em></h3>
+  <ol>
+    <li>Выберите пол человека на фото: у моделей для мужчин и женщин разные эталоны.</li>
+    <li>Перетащите фото на страницу, нажмите на зону слева или вставьте через Ctrl+V.</li>
+    <li>Получите PSL с подуровнем, разбор по измерениям и советы, что можно улучшить.</li>
+  </ol>
+  <div class="feats"><i>Обучена на 5 500 оценённых лицах</i><i>Корреляция с оценками 0,87</i><i>Фото не покидает браузер</i></div>
+</div>`;
+function makeSlot(root, {title, onResult, rate}) {
+  const id = ++slotId;
+  root.className = "slot " + (rate ? "slot--rate" : "slot--duel");
+  root.innerHTML = `
+    <div class="panel">
+      ${title ? `<h3 class="slot-title">${title}</h3>` : ""}
+      <div class="seg" role="radiogroup" aria-label="Пол">
+        <label><input type="radio" name="sex${id}" value="m" checked><span>Мужчина</span></label>
+        <label><input type="radio" name="sex${id}" value="f"><span>Женщина</span></label>
+      </div>
+      <label class="drop"><input type="file" accept="image/*,.heic,.heif,.avif,.jfif">
+        ${UPLOAD_ICON}<strong>Перетащите фото сюда</strong><span>или нажмите, чтобы выбрать файл</span>
+        <span class="chips"><i>PNG</i><i>JPEG</i><i>WebP</i><i>GIF</i><i>BMP</i><i>AVIF</i></span></label>
+      <div class="msg" role="status"></div>
+      <div class="photo"><canvas></canvas></div>
+    </div>
+    <div class="result"></div>${rate ? PLACEHOLDER : ""}`;
+  const q = s => root.querySelector(s);
+  const slot = {root, last: null, tok: 0, sex: () => q("input[name=sex" + id + "]:checked").value};
+  const msg = t => q(".msg").textContent = t;
+  slot.refresh = (spin = false) => {
+    if (slot.last) {
+      slot.last.geo = analyze(slot.last.lm, slot.last.W, slot.last.H, slot.sex());
+      const res = q(".result");
+      res.innerHTML = slot.view(slot.last, slot.sex(), spin);
+      const card = res.querySelector(".spinning");
+      if (card) requestAnimationFrame(() => {   // the roulette must be on screen (it sits under the photo on phones and in the battle)
+        const r = card.getBoundingClientRect();
+        if (r.bottom > innerHeight || r.top < 0) card.scrollIntoView({behavior: REDUCED ? "auto" : "smooth", block: "center"});
+      });
+      // roulette first, then the count-up, then the other cards
+      slot.counted = (card ? runReel(card) : Promise.resolve())
+        .then(() => Promise.all([...res.querySelectorAll("[data-num]")].map(el => animateNumber(el, +el.dataset.num, {delay: 250}))));
+      revealCards(res, slot.counted);
+    }
+    onResult(slot);
+  };
+  slot.load = async file => {
+    const tok = ++slot.tok;
+    slot.last = null; q(".result").innerHTML = ""; msg("Анализирую…"); onResult(slot);
+    q(".photo").style.display = "block"; q(".photo").classList.add("scan");
+    try {
+      const r = await analyzeFile(file, q("canvas"));
+      if (tok !== slot.tok) return;
+      slot.last = r;
+      slot.refresh(true);
+      msg(slot.last.geo.turned ? "Голова повёрнута: оценка будет менее точной. Нужен строгий анфас." : "");
+    } catch (err) {
+      if (tok !== slot.tok) return;
+      if (!(err instanceof UserError)) console.error(err);
+      msg(err instanceof UserError ? err.message : "Ошибка: не удалось загрузить модель или фото (для первой загрузки нужен интернет).");
+      onResult(slot);
+    } finally {
+      if (tok === slot.tok) q(".photo").classList.remove("scan");
+    }
+  };
+  q("input[type=file]").addEventListener("change", e => { const f = e.target.files[0]; e.target.value = ""; if (f) slot.load(f); });
+  root.querySelectorAll("input[type=radio]").forEach(r => r.addEventListener("change", () => slot.refresh()));
+  const zone = q(".drop");
+  ["dragenter", "dragover"].forEach(ev => root.addEventListener(ev, e => { e.preventDefault(); zone.classList.add("over"); }));
+  root.addEventListener("dragleave", e => { if (!root.contains(e.relatedTarget)) zone.classList.remove("over"); });
+  root.addEventListener("drop", e => {
+    e.preventDefault(); e.stopPropagation(); zone.classList.remove("over"); veil.hidden = true; dragDepth = 0;
+    const f = e.dataTransfer.files[0];
+    if (f) slot.load(f);
+  });
+  return slot;
+}
+
+// ---------- modes ----------
+const veil = $("veil");
+let mode = "rate", dragDepth = 0, battleNext = 0;
+const rate = makeSlot($("slot-rate"), {rate: true, onResult: () => {}});
+rate.view = (last, sex, spin) => renderFull({...last.geo, sc: score(last.feat, sex)}, spin);
+const verdictEl = $("verdict");
+const duel = [makeSlot($("slot-a"), {title: "Фото A", onResult: updateVerdict}), makeSlot($("slot-b"), {title: "Фото B", onResult: updateVerdict})];
+duel.forEach(s => s.view = (last, sex, spin) => renderCompact({...last.geo, sc: score(last.feat, sex)}, spin));
+let verdictSeen = false;
+function updateVerdict() {
+  const [a, b] = duel;
+  verdictEl.innerHTML = a.last && b.last ? verdict(a, b) : `<p class="why" style="text-align:center">${a.last || b.last ? "Загрузите второе фото, чтобы начать батл." : "Загрузите два фото, чтобы сравнить лица."}</p>`;
+  if (!(a.last && b.last)) { verdictSeen = false; return; }
+  const ready = Promise.all([a.counted, b.counted]);
+  revealCards(verdictEl, ready);
+  if (!verdictSeen) {   // once per battle: after both scores have landed, bring the verdict into view
+    verdictSeen = true;
+    ready.then(() => { const v = verdictEl.querySelector(".vs"); if (v && v.getBoundingClientRect().top > innerHeight * 0.6) v.scrollIntoView({behavior: REDUCED ? "auto" : "smooth", block: "center"}); });
+  }
+}
+function setMode(m) {
+  mode = m;
+  $("mode-rate").hidden = m !== "rate"; $("mode-battle").hidden = m !== "battle";
+  document.querySelector("main").classList.toggle("wide", m === "battle");
+  document.querySelectorAll("[role=tab]").forEach(t => t.setAttribute("aria-selected", String(t.dataset.mode === m)));
+}
+document.querySelectorAll("[role=tab]").forEach(t => t.addEventListener("click", () => setMode(t.dataset.mode)));
+updateVerdict();
+
+// files from drag & drop on the page or from the clipboard go to the current mode
+function route(files) {
+  files = [...files].filter(f => f.type.startsWith("image/") || /\.(png|jpe?g|jfif|webp|gif|bmp|avif|heic|heif|tiff?|ico|svg)$/i.test(f.name));
+  if (!files.length) return false;
+  if (mode === "rate") rate.load(files[0]);
+  else for (const f of files.slice(0, 2)) {
+    const empty = duel.findIndex(s => !s.last && !s.root.querySelector(".photo.scan"));
+    const i = empty >= 0 ? empty : battleNext;
+    duel[i].load(f); battleNext = 1 - i;
+  }
+  return true;
+}
+window.addEventListener("dragenter", e => { if ([...e.dataTransfer.types].includes("Files")) { dragDepth++; veil.hidden = false; } });
+window.addEventListener("dragover", e => e.preventDefault());
+window.addEventListener("dragleave", () => { if (--dragDepth <= 0) { dragDepth = 0; veil.hidden = true; } });
+window.addEventListener("drop", e => { e.preventDefault(); dragDepth = 0; veil.hidden = true; route(e.dataTransfer.files); });
+window.addEventListener("paste", e => { if (route(e.clipboardData.files)) e.preventDefault(); });
+
+// self-check
+console.assert(tier(2.9)[1] === "Sub3" && tier(7.4)[1] === "Chad" && tier(8)[1] === "True Adam", "tier table");
+console.assert(subTier(4.0).name === "LLTN" && subTier(4.49).name === "HLTN" && subTier(4.6).name === "LMTN" && subTier(5.1).name === "LHTN" && subTier(5.45).name === "HHTN" && subTier(3.2) === null && subTier(6) === null, "sub-tiers");
+for (let k = 0; k < 50; k++) {   // the roulette must end on the real tier and hesitate on a neighbour
+  const real = k % TIERS.length, r = buildReel(real);
+  console.assert(r[REEL_T] === real && r[REEL_T - 1] !== real && Math.abs(r[REEL_T - 1] - real) <= 2 && r.length === REEL_LEN, "roulette target");
+}
+console.assert(!TIERS.some(t => t[1] === "Gigachad"), "no gigachad");
+console.assert(Math.abs(percentile(4) - 50) < 0.1 && Math.abs(percentile(5) - 84.1) < 0.5, "percentile");
+console.assert(toPsl(0) === 4 && toPsl(-9) === 0 && toPsl(9) === 8.5, "toPsl anchors: average rating = PSL 4");
+console.assert(off(2.3, 2.3, 0.15) === 0 && off(3, 2.3, 0.15) === -1 && up(6, 1.7, 6) === 1, "scoring helpers");
+console.assert(modelFor("m").w.length === modelFor("f").w.length && modelFor("m").w.length > 1000, "model weights decode");
+</script>
+</body>
+</html>
